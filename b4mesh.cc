@@ -98,7 +98,8 @@ void B4Mesh::SetUp(Ptr<Node> node, vector<Ipv4Address> peers, float txMean){
   this->node = node;
   this->interArrival = txMean;
 
-  if (recv_sock == 0){
+  //if (recv_sock == 0){
+  if (!recv_sock){
     // Open the receiving socket
     TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
     recv_sock = Socket::CreateSocket(node, tid);
@@ -329,12 +330,12 @@ void B4Mesh::SendPacket(ApplicationPacket& packet, Ipv4Address ip, bool
     return;
   }
 
-  if (!scheduled){
-    float desync = (rand() % 100) / 1000.0;
-    Simulator::Schedule(Seconds(desync),
-        &B4Mesh::SendPacket, this, packet, ip, true);
-    return;
-  }
+  // if (!scheduled){
+  //   float desync = (rand() % 100) / 1000.0;
+  //   Simulator::Schedule(Seconds(desync),
+  //       &B4Mesh::SendPacket, this, packet, ip, true);
+  //   return;
+  // }
     // Create the packet to send
   Ptr<Packet> pkt = Create<Packet>((const uint8_t*)(packet.Serialize().data()), packet.GetSize());
 
@@ -400,8 +401,8 @@ void B4Mesh::GenerateTransactions(){
 void B4Mesh::CourseChange(string context, Ptr<const MobilityModel> mobility){
   Vector pos = mobility->GetPosition();
   Vector vel = mobility->GetVelocity();
-  cout << Simulator::Now().GetSeconds() << " Node: " << node->GetId() <<", model =" << mobility->GetTypeId() << ", POS: x =" << pos.x << ", y =" << pos.y
-       << ", z =" << pos.z << "; VEL: " << vel.x << ", y =" << vel.y << ", z =" << vel.z << endl;
+  // cout << Simulator::Now().GetSeconds() << " Node: " << node->GetId() <<", model =" << mobility->GetTypeId() << ", POS: x =" << pos.x << ", y =" << pos.y
+  //      << ", z =" << pos.z << "; VEL: " << vel.x << ", y =" << vel.y << ", z =" << vel.z << endl;
 }
 
 void B4Mesh::RegisterTransaction(string payload){
@@ -1812,7 +1813,8 @@ float B4Mesh::GetExecTimeBKtreatment (int Nblock) {       // size in bytes
 
 void B4Mesh::StopApplication(){
   running = false;
-  if (recv_sock != 0){
+  //if (recv_sock ==0){
+  if (!recv_sock){
     recv_sock->Close();
     recv_sock->SetRecvCallback (MakeNullCallback<void, Ptr<Socket> > ());
     recv_sock = 0;

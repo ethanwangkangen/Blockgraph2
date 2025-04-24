@@ -141,8 +141,8 @@ Ipv4Address B4MeshMobility::GetIpAddress(){
 void B4MeshMobility::CourseChange(string context, Ptr<const MobilityModel> mobility){
   Vector pos = mobility->GetPosition();
   Vector vel = mobility->GetVelocity();
-  cout << Simulator::Now().GetSeconds() << " Node: " << node->GetId() <<", model =" << mobility->GetTypeId() << ", POS: x =" << pos.x << ", y =" << pos.y
-       << ", z =" << pos.z << "; VEL: " << vel.x << ", y =" << vel.y << ", z =" << vel.z << endl;
+  // cout << Simulator::Now().GetSeconds() << " Node: " << node->GetId() <<", model =" << mobility->GetTypeId() << ", POS: x =" << pos.x << ", y =" << pos.y
+  //      << ", z =" << pos.z << "; VEL: " << vel.x << ", y =" << vel.y << ", z =" << vel.z << endl;
 }
 // ************ Constant Position Model ****************
 

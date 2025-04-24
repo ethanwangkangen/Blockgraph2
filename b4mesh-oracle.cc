@@ -19,12 +19,6 @@ vector<void *> B4MeshOracle::nodesB4mesh;     // b4mesh references
 
 
 B4MeshOracle::B4MeshOracle(){
-	current_state = FOLLOWER;
-	current_leader = -1;
-	running = false;
-	current_term = 0;
-
-	recv_sock = 0;
 
 	// // Service Times
 	// sendServiceTime = 100;      // milliseconds
@@ -34,14 +28,36 @@ B4MeshOracle::B4MeshOracle(){
 	// // Probabilities
 	// blockRecvProbability = 1.0;
 	// blockCommitProbability = 1.0;
-
-
 }
 
 B4MeshOracle::~B4MeshOracle(){
 }
 
 void B4MeshOracle::SetUp(Ptr<Node> node, vector<Ipv4Address> peers){
+	current_state = FOLLOWER;
+	current_leader = -1; //unused?
+	running = false;
+	current_term = 0;
+
+	recv_sock = 0;
+
+	commit_index = -1;
+	last_applied = -1;
+	gathered_votes = 0;
+	majority = 0;
+
+	heartbeat_freq = 1;
+	election_timeout_parameters = make_pair(4000, 6000);
+	election_timeout_event = EventId();
+
+	// Initialize trace variables
+	start_election = -1;
+	end_election = -1;
+	received_bytes = make_pair(-1.0, -1);
+	sent_bytes = make_pair(-1.0, -1);
+	received_messages = make_pair(-1.0, -1);
+	sent_messages = make_pair(-1.0, -1);
+
 	this->peers = peers;
 	this->node = node;
 
@@ -76,19 +92,26 @@ void B4MeshOracle::ReceivePacket(Ptr<Socket> socket){
 			//debug(debug_suffix.str());
 
 			string parsedPacket;
+			//NS_LOG_UNCOND("packet size is " << packet->GetSize());
+			if (packet->GetSize() == 0) {
+				//NS_LOG_UNCOND("packet size = 0 issue" << packet->GetSize());
+				return;
+			}
 			char* packetInfo = new char[packet->GetSize()];
 			packet->CopyData(reinterpret_cast<uint8_t*>(packetInfo), packet->GetSize());
 			string parsed_packet = string(packetInfo, packet->GetSize());
 			delete[] packetInfo;
+			
 
 			try{
 				ApplicationPacket p(parsed_packet);
 				// For traces propuses
-				b4mesh_throughput[Simulator::Now().GetSeconds()] = p.CalculateSize();
-
+				//b4mesh_throughput[Simulator::Now().GetSeconds()] = p.CalculateSize();
+				
 				if (p.GetService() == ApplicationPacket::CONSENSUS){
+					
 					int message_type = ExtractMessageType(p.GetPayload());
-
+					
 					if (!IsInCurrentGroup(ip)) {
 						debug("Message dropped because not from the same group"); // ? correct?
 						return; // Ignore all messages from nodes not in current_group
@@ -96,7 +119,6 @@ void B4MeshOracle::ReceivePacket(Ptr<Socket> socket){
 				
 					if (message_type == REQ_VOTE){
 						// Follower receiving a vote request from a candidate trying to be leader
-
 						debug_suffix.str("");
 						debug_suffix << "Received a request vote " << packet->GetSize() << "from Node " << GetNodeId(ip);
 
@@ -139,7 +161,6 @@ void B4MeshOracle::ReceivePacket(Ptr<Socket> socket){
 
 					} else if (message_type == ACK_ENTRY) {
 						// Leader receiving acknowledgement of AppendEntry from Follower	
-
 						debug_suffix << "Received an ack entries message of " <<
 							packet->GetSize() << "B from Node " << GetNodeId(ip);
 						debug(debug_suffix.str());
@@ -153,6 +174,7 @@ void B4MeshOracle::ReceivePacket(Ptr<Socket> socket){
 				}
 			} catch (const std::exception& e){
 				//pass
+				NS_LOG_UNCOND("Exception parsing packet");
 			}
 		}
 	}
@@ -164,13 +186,13 @@ void B4MeshOracle::SendPacket(ApplicationPacket& packet, Ipv4Address ip, bool sc
     	return;
 	}
 
-	// I don't really understand this still.
-	if (!scheduled){
-		float desync = (rand() % 100) / 1000.0;
-		Simulator::Schedule(Seconds(desync),
-        	&B4MeshOracle::SendPacket, this, packet, ip, true);
-    	return;
-	}
+	// // I don't really understand this still.
+	// if (!scheduled){
+	// 	float desync = (rand() % 100) / 1000.0;
+	// 	Simulator::Schedule(Seconds(desync),
+    //     	&B4MeshOracle::SendPacket, this, packet, ip, true);
+    // 	return;
+	// }
     // Create the packet to send
   	Ptr<Packet> pkt = Create<Packet>((const uint8_t*)(packet.Serialize().data()), packet.GetSize());
 
@@ -183,17 +205,17 @@ void B4MeshOracle::SendPacket(ApplicationPacket& packet, Ipv4Address ip, bool sc
 	int res = source->Send(pkt);
 	source->Close();
 
-	// if (res > 0){
-    // 	/*
-    // 	debug_suffix.str("");
-    // 	debug_suffix << GetIpAddress() << " sends a packet of size " << pkt->GetSize() << " to " << ip << endl;
-    // 	debug(debug_suffix.str());
-    // 	*/
-	// } else {
-	// 	debug_suffix.str("");
-	// 	debug_suffix << GetIpAddress() << " failed to send a packet of size " << pkt->GetSize() << " to " << ip << endl;
-	// 	debug(debug_suffix.str());
-  	// }
+	if (res > 0){
+    	/*
+    	debug_suffix.str("");
+    	debug_suffix << GetIpAddress() << " sends a packet of size " << pkt->GetSize() << " to " << ip << endl;
+    	debug(debug_suffix.str());
+    	*/
+	} else {
+		debug_suffix.str("");
+		debug_suffix << GetIpAddress() << " failed to send a packet of size " << pkt->GetSize() << " to " << ip << endl;
+		debug(debug_suffix.str());
+  	}
 }
 
 Ipv4Address B4MeshOracle::GetIpAddress(){
@@ -267,16 +289,16 @@ bool B4MeshOracle::IsLeader(){
 // KIV to fix
 void B4MeshOracle::ResetElectionTimeout(float factor){
 	if (!running) return;
-	//if (election_timeout_event != EventId()){
-	//	Simulator::Cancel(election_timeout_event);
-	//}
+	if (election_timeout_event != EventId()){
+		Simulator::Cancel(election_timeout_event);
+	}
 
-// 	float delay = uniform_rand(election_timeout_parameters.first,
-// 	election_timeout_parameters.second) / 1000.;
+	float delay = uniform_rand(election_timeout_parameters.first,
+	election_timeout_parameters.second) / 1000.;
 
-// 	delay = delay * factor;
-// 	election_timeout_event = Simulator::Schedule(Seconds(delay), &B4MeshOracle::TriggerElectionTimeout, this);
-	TriggerElectionTimeout();
+	delay = delay * factor;
+	election_timeout_event = Simulator::Schedule(Seconds(delay), &B4MeshOracle::TriggerElectionTimeout, this);
+	//TriggerElectionTimeout();
 }
 
 // When timeout runs out,
@@ -302,6 +324,8 @@ void B4MeshOracle::TriggerElectionTimeout(){
 	// Pending groups = { [group_hash, [group] ], ...}
 	// Apply group: set current_group to the group associated with group_hash and update majority
 
+
+	//NS_LOG_UNCOND("pending_groups size: " << pending_groups.size());
 	// (not entirely sure): because only update the majority criterion for a split, not for a merge
 	if (pending_groups.size() > 0){
 		string new_group_hash = pending_groups[0].first;
@@ -324,7 +348,8 @@ void B4MeshOracle::TriggerElectionTimeout(){
 	req_vote.candidate_id = node->GetId();
 	req_vote.last_log_index = LastLogIndex(); // Replaced by last commit (?)
 
-	if (commit_index >= 0) {
+	//NS_LOG_UNCOND("commit_index: " << commit_index);
+	if (commit_index >= 0 && !log.empty()) { // Had to add the !log.empty(). But this doesn't make sense also. if commit_index>
 		//req_vote.last_log_term = log.back.first();
 		req_vote.last_log_term = log.back().first;
 	} else {
@@ -344,6 +369,7 @@ void B4MeshOracle::TriggerElectionTimeout(){
 	// }
 
 	// Only node in the group, so just make it the leader
+	//NS_LOG_UNCOND("current_group size: " << current_group.size());
 	if (current_group.size() == 1){
 		current_state = LEADER;
 		SetCurrentLeader(node->GetId());
@@ -351,7 +377,7 @@ void B4MeshOracle::TriggerElectionTimeout(){
 		// traces->EndElection(end_election, node->GetId());
 		// traces->ResetStartElection();
 		next_indexes = vector<int>(peers.size(), commit_index+1);
-		match_indexes = vector<int>(peers.size(), 0);
+		match_indexes = vector<int>(peers.size(), -1);// was originally 0?
 		commit_indexes = vector<int>(peers.size(), -1);
 		SendHeartbeats();
 	}
@@ -542,10 +568,10 @@ void B4MeshOracle::ProcessVoteResponse(request_vote_ack_t ack_vote){
 		SetCurrentLeader(node->GetId());
 		
 		end_election = Simulator::Now().GetSeconds();
-		traces->EndElection(end_election, node->GetId());
+		//traces->EndElection(end_election, node->GetId());
 		
 		next_indexes = vector<int>(peers.size(), commit_index+1);
-		match_indexes = vector<int>(peers.size(), 0);
+		match_indexes = vector<int>(peers.size(), -1); // was 0 at first
 		commit_indexes = vector<int>(peers.size(), 0);
 		
 		SendHeartbeats(); // Haven't implemented yet
@@ -617,6 +643,12 @@ void B4MeshOracle::SendHeartbeats(){
 	for (auto n : current_group){
 		Ipv4Address ip = n.second;
 		if (GetIpAddress() != ip){
+
+			debug_suffix << "Next index[n.first] is " << next_indexes[n.first];
+			debug(debug_suffix.str());
+
+			debug_suffix << "LastCommitConfIndex()+1 is " << LastCommitConfIndex()+1;
+			debug(debug_suffix.str());
 			
 			int next_index = max(next_indexes[n.first], LastCommitConfIndex()+1);
 			// This line has to do with the log alignment procedure.
@@ -624,17 +656,33 @@ void B4MeshOracle::SendHeartbeats(){
 			// then need to take the LastCommitConfiguration Index.
 			// If not can just proceed normally.
 
+			debug_suffix << "next_index is " << next_index;
+			debug(debug_suffix.str());
+
+			debug_suffix << "log.size() is " << log.size();
+			debug(debug_suffix.str());
 
 			entries.prev_log_index = next_index - 1;
 			//entries.prev_log_index = next_indexes[n.first] - 1;
 			
+			
 			entries.prev_log_term = GetLogTerm(entries.prev_log_index);
 			string payload((char*)&entries, sizeof(entries));
 
-			string hash = log[next_index].second; 
+			string hash = "";
+			if (next_index >= 0 && next_index < log.size()) {
+   				hash = log[next_index].second;
+			} else {
+				debug_suffix << "Problem with hash ";
+				debug(debug_suffix.str());
+				continue;
+			}
+			
+			//string hash = log[next_index].second; 
+			
 			// This is either a block hash or group hash.
 
-			if (next_index <= LastLogIndex()){ // If there is something to send, (either a block or config change entry)
+			if (next_index <= LastLogIndex() && hash!=""){ // If there is something to send, (either a block or config change entry)
 				if (blockpool.count(hash) > 0){ // The entry is a block to send
 					entries.msg_type = APPEND_ENTRY;
 					entries.entry_term = GetEntry(next_index).first;
@@ -663,8 +711,8 @@ void B4MeshOracle::SendHeartbeats(){
 				msg_type = "HEARTBEAT";
 			}
 
-			//debug_suffix << "Send an entry packet of size " << payload.size();
-			//debug(debug_suffix.str());
+			debug_suffix << "Send an entry packet of size " << payload.size();
+			debug(debug_suffix.str());
 			ApplicationPacket pkt(ApplicationPacket::CONSENSUS, payload);
 			// SendPacket(pkt, ip, false, msg_type);
 			SendPacket(pkt, ip, false);
@@ -687,7 +735,7 @@ void B4MeshOracle::SendHeartbeats(){
 			debug_suffix << "Become follower after committing last pending group";
 			debug(debug_suffix.str());
 			current_state = FOLLOWER;
-			traces->EndConfigChange(Simulator::Now().GetSeconds(), node->GetId());
+			//traces->EndConfigChange(Simulator::Now().GetSeconds(), node->GetId());
 		}
 	}		
 	Simulator::Schedule(Seconds(heartbeat_freq), &B4MeshOracle::SendHeartbeats, this);
@@ -697,6 +745,7 @@ void B4MeshOracle::SendHeartbeats(){
 // Called by followers when it receives AppendEntry from leader.
 // Settle its own log replication.
 B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string data_payload) {
+	debug("Got to here1");
 	ResetElectionTimeout();
 	//traces->ResetStartElection();
 	append_entries_ack_t ret;
@@ -709,6 +758,24 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 	
 	append_entries_hdr_t entries = *((append_entries_hdr_t*) data_payload.data());
 	string log_entries = data_payload.substr(sizeof(append_entries_hdr_t));
+
+		
+		debug_suffix << "entries.prev_log_index is " << entries.prev_log_index;
+		debug(debug_suffix.str());
+
+		debug_suffix << "entries.leader_commit is " << entries.leader_commit;
+		debug(debug_suffix.str());
+
+
+		debug_suffix << "log size is " << log.size();
+		debug(debug_suffix.str());
+
+		debug_suffix << "LastLogIndex() is " << LastLogIndex();
+		debug(debug_suffix.str());
+
+
+		debug_suffix << "commit_index is " << commit_index;
+		debug(debug_suffix.str());
 
 	if (GetCurrentLeader() == -1) {
 		SetCurrentLeader(entries.leader_id);
@@ -735,7 +802,7 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 		ret.success = false;
 		return ret;
 	}
-
+	debug("Got to here2");
 	// Destitution of a leader or a candidate if another leader is detected (maybe useless)
 	// if (current_state == LEADER || current_state == CANDIDATE){
 	// 	debug_suffix << "Revoked by Node " << entries.leader_id;
@@ -746,8 +813,9 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 
   	// Detect log discontinuity and remove uncommitted log entries.
   	if (GetEntry(LastLogIndex()).first != entries.term &&
+	// if(
 		LastLogIndex() > commit_index &&
-		commit_index < entries.prev_log_index &&
+		commit_index < entries.prev_log_index && //was originally <
 		groups.count(GetEntry(commit_index).second) &&
 		log_entries.size() > 0)	{
 			debug_suffix << GetEntry(LastLogIndex()).first << " " << entries.term;
@@ -760,7 +828,31 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 			debug(debug_suffix.str());
 			debug_suffix << "Removed " << RemoveUncommittedEntries() << " entries";
 			debug(debug_suffix.str());
+
+
+		debug_suffix << "entries.prev_log_index is " << entries.prev_log_index;
+		debug(debug_suffix.str());
+
+		debug_suffix << "entries.leader_commit is " << entries.leader_commit;
+		debug(debug_suffix.str());
+
+		debug_suffix << "log size is " << log.size();
+		debug(debug_suffix.str());
+
+		debug_suffix << "LastLogIndex() is " << LastLogIndex();
+		debug(debug_suffix.str());
+
+		debug_suffix << "commit_index is " << commit_index;
+		debug(debug_suffix.str());
 	}
+		
+		debug("Got to here3");
+
+		debug_suffix << "GetEntry(entries.prev_log_index).first is " << GetEntry(entries.prev_log_index).first;
+		debug(debug_suffix.str());
+
+		debug_suffix << "entries.prev_log_term " <<  entries.prev_log_term;
+		debug(debug_suffix.str());
 
   	// Local log is not up to date
   	if (GetEntry(entries.prev_log_index).first != entries.prev_log_term &&
@@ -783,6 +875,7 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
     	ret.success = false;
     	return ret;
 	}
+	debug("Got to here4");
 
 	// Process the entries
 	debug_suffix << "Process entry of size " << data_payload.size() << "B";
@@ -799,6 +892,7 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 				log.push_back(make_pair(current_term, hash));
 			}
 		}
+
 
 		if (entries.msg_type == APPEND_ENTRY){
 			Block b(log_entries);
@@ -818,6 +912,8 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 				log[entries.prev_log_index+1] = make_pair(entries.entry_term, b.GetHash());
 				blockpool[b.GetHash()] = b;
 			} else{
+				debug("Block appending failed somehow");
+
 				ret.success = false;
 				return ret;
 			}
@@ -829,21 +925,31 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 
 			debug_suffix << "Group : " << new_group.first;
 			debug(debug_suffix.str());
+
+
 			if (entries.prev_log_index == LastLogIndex()){
 				debug("Add group");
 				log.push_back(make_pair(entries.entry_term, new_group.first));
-			} else {
+				groups[new_group.first] = new_group.second; // add {[group_hash -> [group]]}
+			} else if (entries.prev_log_index < LastLogIndex()) {
+				debug("Replace last entry?");
 				log[entries.prev_log_index+1] = make_pair(entries.entry_term, new_group.first);
 				debug_suffix << "\t Update the configuration at index " <<
 				entries.prev_log_index+1;
 				debug(debug_suffix.str());
+				groups[new_group.first] = new_group.second; // add {[group_hash -> [group]]}
+			} else {
+				debug("Config chane appending failed somehow");
+				ret.success = false;
+				return ret;
 			}
 
-			groups[new_group.first] = new_group.second; // add {[group_hash -> [group]]}
+			
 		}
 	} else {
 		debug("Received an heartbeat");
 	}
+	debug("Got to here5");
 
 	// Follower updates local commit index
 	// The ACTUAL committing logic should be here too?? 
@@ -866,19 +972,27 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 				pending_groups.erase(pending_groups.begin());
 			}
 			if (pending_groups.size() == 0){
-				traces->EndConfigChange(Simulator::Now().GetSeconds(), node->GetId());
+				//traces->EndConfigChange(Simulator::Now().GetSeconds(), node->GetId());
 			}
 		}
 	}
+	debug("Got to here6");
 
 	// Actual committing logic here
 	for (int idx = prev_commit_index; idx < commit_index; ++idx) {
-		string hash = log[idx].second;
-		if (blockpool.count(hash) > 0){ // Only want to send actual Blocks to Blockgraph, not Config Change Entries
-			Block b = blockpool[hash];
-			IndicateBlockCommit(b);
+		if (idx >= 0 && idx <= log.size()-1) { // Added this check
+			string hash = log[idx].second;
+			if (blockpool.count(hash) > 0){ // Only want to send actual Blocks to Blockgraph, not Config Change Entries
+				Block b = blockpool[hash];
+				IndicateBlockCommit(b);
+			} else if (groups.count(hash)> 0){
+				debug("CONFIG CHANGE ENTRY COMMITTED");
+			}
 		}
+
 	}
+
+	debug("Got to here7");
 
 
 	ret.commit_index = commit_index;
@@ -926,13 +1040,23 @@ void B4MeshOracle::ProcessEntriesAck(append_entries_ack_t ack_entries){
 	// So should the "committing logic" be in place here as well for the leader?
 	int prev_commit_index = commit_index;
 
+	debug_suffix << "Current group size is " << current_group.size();
+	debug(debug_suffix.str());
+
 	for (int commit_candidate=commit_index+1; commit_candidate<=LastLogIndex(); ++commit_candidate){
 		int count = 0;
-		for (auto n : current_group){
-		int commit = match_indexes[n.first];
-		if (commit >= commit_candidate)
-			count++;
+		for (size_t i = 0; i < match_indexes.size(); ++i) {
+   			std::cout << "match_indexes[" << i << "] = " << match_indexes[i] << std::endl;
 		}
+		for (auto n : current_group){
+			int commit = match_indexes[n.first];
+			if (commit >= commit_candidate)
+				count++;
+		}
+
+		debug_suffix << "Current count is " << count;
+		debug(debug_suffix.str());
+
 		if (groups.count(GetEntry(commit_candidate).second) ||
 			groups.count(GetEntry(commit_candidate-1).second)){
 			debug_suffix << commit_candidate << " / " << LastLogIndex() << " group " <<
@@ -941,7 +1065,7 @@ void B4MeshOracle::ProcessEntriesAck(append_entries_ack_t ack_entries){
 			if ((uint32_t)count == current_group.size()){ // We want unanimity to commit config
 				// change entries or first entry after
 				// config change
-				debug_suffix <<"Increment commit index from " << commit_index << " to ";
+				debug_suffix <<"***Increment commit index from " << commit_index << " to ";
 				commit_index = min(commit_candidate, LastLogIndex());
 				debug_suffix << commit_index;
 				debug(debug_suffix.str());
@@ -949,7 +1073,7 @@ void B4MeshOracle::ProcessEntriesAck(append_entries_ack_t ack_entries){
 			}
 		}
 		else if ((uint32_t)count > current_group.size() / 2){
-			debug_suffix << "Increment commit index from " << commit_index << " to ";
+			debug_suffix << "***Increment commit index from " << commit_index << " to ";
 			commit_index = min(commit_candidate, LastLogIndex());;
 			debug_suffix << commit_index;
 			debug(debug_suffix.str());
@@ -963,11 +1087,22 @@ void B4MeshOracle::ProcessEntriesAck(append_entries_ack_t ack_entries){
 		if (blockpool.count(hash) > 0){ // Only want to send actual Blocks to Blockgraph, not Config Change Entries
 			Block b = blockpool[hash];
 			IndicateBlockCommit(b);
+		} else if (groups.count(hash)> 0){
+			debug("CONFIG CHANGE ENTRY COMMITTED");
 		}
 	}
 	
 	commit_indexes[node->GetId()] = commit_index;
 }
+
+pair<int, string> B4MeshOracle::GetEntry(int index){
+	if (index >= 0 && (uint32_t)index < log.size())
+		return log[index];
+	else{
+		return make_pair(-1, "");
+	}
+}
+
 
 // Given a block and a term,
 // Append the entries to the log
@@ -982,12 +1117,12 @@ void B4MeshOracle::AppendLog(Block&b, int term) { // Originally called InsertEnt
 	if (blockpool.count(b.GetHash()) == 0 || true) {
 		log.push_back(make_pair(term, b.GetHash()));
 		blockpool[b.GetHash()] = b;
-		if (IsLeader()){
-			debug_suffix << "Add new entry " << b;
-			debug(debug_suffix.str());
-			match_indexes[node->GetId()] = LastLogIndex(); // Should this be changing last_applied? 
-			next_indexes[node->GetId()] = LastLogIndex()+1;
-		}
+		// if (IsLeader()){
+		// 	debug_suffix << "Add new entry " << b;
+		// 	debug(debug_suffix.str());
+		// 	match_indexes[node->GetId()] = LastLogIndex(); // Should this be changing last_applied? 
+		// 	next_indexes[node->GetId()] = LastLogIndex()+1;
+		// }
 	}
 }
 
@@ -1029,8 +1164,8 @@ void B4MeshOracle::ChangeGroup(pair<string, vector<pair<int, Ipv4Address>>> new_
 		return;
 	}
 
-	traces->ResetStartConfigChange();
-	traces->StartConfigChange(Simulator::Now().GetSeconds(), node->GetId());
+	// traces->ResetStartConfigChange();
+	// traces->StartConfigChange(Simulator::Now().GetSeconds(), node->GetId());
 
 	pending_groups.clear();
 	auto group_sequence = MakeGroupChangeSequence(new_group);
@@ -1171,7 +1306,7 @@ int B4MeshOracle::GetNodeId(Ipv4Address ip){
 
 int B4MeshOracle::LastLogIndex(){
 	if (log.size() == 0){
-		return -1;
+		return -1; //was -1?
 	} else
 		return log.size()-1;
 }
@@ -1239,6 +1374,8 @@ void B4MeshOracle::IndicateBlockCommit(Block b){
 	// Which in turn points to the recvBlock in B4Mesh.
 	// Should probably rename this.
 	sendBlock(nodesB4mesh.at(node->GetId()), b); // Calling recvBlock in B4Mesh
+	debug_suffix << "BLOCK HAS SUCCESSFULLY BEEN COMMITTED AND SENT BACK TO BLOCKGRAPH MODULE";
+	debug(debug_suffix.str());
 }
 
 void B4MeshOracle::PrintLog(){
@@ -1253,10 +1390,10 @@ void B4MeshOracle::PrintLog(){
 }
 
 void B4MeshOracle::debug(string suffix){
-/*  cout << Simulator::Now().GetSeconds() << "s: B4MeshOracle : Node " << node->GetId() <<
+	cout << Simulator::Now().GetSeconds() << "s: B4MeshOracle : Node " << node->GetId() <<
       " : " << suffix << endl;
-  debug_suffix.str("");
-*/
+  	debug_suffix.str("");
+
 }
 
 

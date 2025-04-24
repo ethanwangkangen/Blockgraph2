@@ -144,6 +144,8 @@ class B4MeshOracle : public Application{
 		int GetCurrentTerm();
 
 		int GetCurrentState();
+		
+		void SetCurrentState(int i);
 
 		int GetLastLogTerm();
 

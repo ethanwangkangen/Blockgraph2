@@ -16,7 +16,7 @@ int main(int argc, char *argv[]){
   double txGen = 0.5;  // Mean time in seconds between the generation of two txs
   int mMobility = 1;  // Mobility model 
   int mLoss = 2;  // Loss propagation model 
-  int nScen = 2;    // Number of scenario
+  int nScen = 1;    // Number of scenario
   double speed = 2;  // Speed of the mobility model 
 
 
