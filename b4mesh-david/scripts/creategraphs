@@ -1,0 +1,17 @@
+# !/bin/bash
+# First argument: number of nodes
+
+if [ $# -eq 0 ]
+  then
+    echo "Please provide number of nodes as argument"
+		echo "./creategraph <Num Nodes>"
+		exit 1
+fi
+
+for i in $(seq 0 "$(($1-1))");
+do
+	  ./txt2png ../Traces/blockgraph-$i.txt ../results/graph-$i.png
+    ./txt2Png_time ../Traces/blockgraph-$i.txt ../results/graphTime-$i.png
+done
+
+echo "Results availables in ../results/"

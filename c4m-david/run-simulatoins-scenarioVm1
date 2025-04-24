@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# First argument: number of runs
+total_run=$1
+
+# Second argument: simulation time (s)
+sim_time=$2
+
+echo $numNodes
+
+echo "Running NS3 c4m"
+
+for scen in 1 2 3
+do
+	for num_nodes in 30
+	do
+		for heartBeat in 50 500
+		do
+			for elecTout in 300 600 4000
+			do
+				if [ $elecTout -gt $heartBeat ]
+				then
+				#	if [ $num_nodes -lt 30 -o $heartBeat -eq 1000 ]
+				#	then
+						for run in $(seq 1 $total_run)
+						do
+							NS_GLOBAL_VALUE="RngRun=$run" ../waf --run "c4m --nNodes=$num_nodes --sTime=$sim_time --nScen=$scen --hBeat=$heartBeat --eTimeout=$elecTout" > c4m/Traces/trace-sc$scen-nd$num_nodes-hb$heartBeat-el$elecTout-$run.tr
+							#touch c4m/Traces/trace-sc$scen-nd$num_nodes-hb$heartBeat-el$elecTout-$run.tr
+						done
+				#	fi
+				fi
+			done
+		done
+	done
+done
