@@ -881,7 +881,7 @@ void B4Mesh::AddBlockToBlockgraph(Block b){
   debug(debug_suffix.str());
   blockgraph.AddBlock(b);
   // TRACE << "ADD_BLOCK" << " " << b.GetHash().data() << endl;
-  // For traces propuses
+  // For traces purposes
   
   CreateGraph(b);
 }
@@ -903,9 +903,9 @@ void B4Mesh::UpdatingMempool (vector<Transaction> transactions, string b_hash){
       pending_transactions_time.erase(t.GetHash());
     }
     else {
-      debug_suffix.str("");
-      debug_suffix << " UpdatingMempool:  I don't know this transaction " << t.GetHash().data() << endl;
-      debug(debug_suffix.str());
+      // debug_suffix.str("");
+      // debug_suffix << " UpdatingMempool:  I don't know this transaction " << t.GetHash().data() << endl;
+      // debug(debug_suffix.str());
       TraceTxLatency(t, b_hash);
     }
   }
@@ -1562,6 +1562,12 @@ void B4Mesh::SendBlockToConsensus(Block b){
 // **************** CONSENSUS INTERFACES METHODS *****************
 void B4Mesh::RecvBlock(void * b4, Block b) {
 
+  // debug_suffix.str("");
+  // debug_suffix << "Received a block from consensus module and RecvBlock with hash" << b.GetHash().data() <<endl;
+  // debug(debug_suffix.str());
+
+    // cout << " Node: " << node->GetId() << "Received a block from consensus module and RecvBlock with hash" << b.GetHash().data() <<endl;
+
   Ptr<B4Mesh> ptr_b = (B4Mesh *) b4;
   ptr_b->GetBlock(b);
 
@@ -1821,11 +1827,12 @@ void B4Mesh::StopApplication(){
   }
 
   GenerateResults();
-/*
+  debug("GENERATING RESULTS");
+// /*
   if (node->GetId() == 0){
     PerformancesB4Mesh();
   }
-  */
+  // */
 }
 
 void B4Mesh::GenerateResults(){
@@ -1833,7 +1840,8 @@ void B4Mesh::GenerateResults(){
   // Délais Propagation Block
   ofstream output_file1;
   char filename1[80];
-  sprintf(filename1, "scratch/b4mesh/Traces/Delai_Prop_Block-%d.txt", node->GetId());
+  sprintf(filename1, "Traces/Delai_Prop_Block-%d.txt", node->GetId());
+  std::cout << "Saving to: " << filename1 << std::endl;
   output_file1.open(filename1, ios::out);
   output_file1 << "#BlockHash" << " " << "TimeSend" << " " << "TimeReceve" << endl;
   for (auto it : time_SendRcv_block){
@@ -1846,7 +1854,7 @@ void B4Mesh::GenerateResults(){
   // Délais Propagation Txs
   ofstream output_file2;
   char filename2[60];
-  sprintf(filename2, "scratch/b4mesh/Traces/Delai_Prop_Txs-%d.txt", node->GetId());
+  sprintf(filename2, "Traces/Delai_Prop_Txs-%d.txt", node->GetId());
   output_file2.open(filename2, ios::out);
   output_file2 << "#TxHash" << " " << "TimeSend" << " " << "TimeReceve" << endl;
   for (auto it : time_SendRcv_txs){
@@ -1859,7 +1867,7 @@ void B4Mesh::GenerateResults(){
   // Throughput b4mesh protocol
   ofstream output_file3;
   char filename3[50];
-  sprintf(filename3, "scratch/b4mesh/Traces/b4mesh_throughput-%d.txt", node->GetId());
+  sprintf(filename3, "Traces/b4mesh_throughput-%d.txt", node->GetId());
   output_file3.open(filename3, ios::out);
   output_file3 << "#time" << " " << "bytes-send" << endl;
   for (auto it : b4mesh_throughput){
@@ -1883,7 +1891,7 @@ void B4Mesh::GenerateResults(){
   // #it.first = TxBlock ; it.second.first = TXHash ; it.second.second = tx latency 
   ofstream output_file5;
   char filename5[60];
-  sprintf(filename5, "scratch/b4mesh/Traces/TxsLatency-%d.txt", node->GetId());
+  sprintf(filename5, "Traces/TxsLatency-%d.txt", node->GetId());
   output_file5.open(filename5, ios::out);
   for (auto it : TxsLatency){
     output_file5 << it.first << " " << it.second.first << " " << it.second.second << endl;
@@ -1893,7 +1901,7 @@ void B4Mesh::GenerateResults(){
   // ---The blockgraph of each node. ----
   ofstream output_file6;
   char filename6[50];
-  sprintf(filename6, "scratch/b4mesh/Traces/blockgraph-%d.txt", node->GetId());
+  sprintf(filename6, "Traces/blockgraph-%d.txt", node->GetId());
   output_file6.open(filename6, ios::out);
   output_file6 << "#BlockGroup" << " " << "ParentBlock" << " " << "BlockHash" << endl;
   for (auto &it : blockgraph_file){
@@ -1905,7 +1913,7 @@ void B4Mesh::GenerateResults(){
   // Mempool information
   ofstream output_file9;
   char filename9[60];
-  sprintf(filename9, "scratch/b4mesh/Traces/live_mempool-%d.txt", node->GetId());
+  sprintf(filename9, "Traces/live_mempool-%d.txt", node->GetId());
   output_file9.open(filename9, ios::out);
   output_file9 << "TimeSimulation" << " " << "NumTxs" << " " << "SizeMempool(Bytes)" << " " << " MempoolUsage" << endl;
   for (auto it : mempool_info){
@@ -1917,7 +1925,7 @@ void B4Mesh::GenerateResults(){
   // Print performances
   ofstream output_file10;
   char filename10[50];
-  sprintf(filename10, "scratch/b4mesh/Traces/Performances-%d.txt", node->GetId());
+  sprintf(filename10, "Traces/Performances-%d.txt", node->GetId());
   output_file10.open(filename10, ios::out);
   output_file10 << "********* BLOCKGRAPH RELATED PERFORMANCES *****************" << endl;
   output_file10 << "B4Mesh: Time of simulation: " << Simulator::Now().GetSeconds() << "s" << endl;
@@ -1929,7 +1937,7 @@ void B4Mesh::GenerateResults(){
   output_file10 << "B4Mesh: p_b_t_t : " << p_b_t_t/1000 << "s " << endl;
   output_file10 << "B4Mesh: p_b_c_t : " << p_b_c_t/1000 << "s " << endl;
   output_file10 << "********* BLOCK RELATED PERFORMANCES *****************" << endl;
-  output_file10 << "B4mesh: Total number of blocks : " << blockgraph.GetBlocksCount() << endl;
+  output_file10 << "B4mesh: Total number of blocks in blockgraph: " << blockgraph.GetBlocksCount() << endl;
   output_file10 << "B4Mesh: Mean size of a block in the blockgraph (bytes): " << blockgraph.GetByteSize()/blockgraph.GetBlocksCount() << endl;
   output_file10 << "B4Mesh: Number of dumped blocks (already in block_waiting_list or in blockgraph): " << numDumpingBlock << endl;
   output_file10 << "B4Mesh: Number of remaining blocks' references in the missing_block_list: " << missing_block_list.size() << endl;
@@ -1959,7 +1967,7 @@ void B4Mesh::GenerateResults(){
   output_file10.close();
 
 }
-/*
+
 void B4Mesh::PerformancesB4Mesh(){
   int n = peers.size();
   int totalTxs = GetNumTxsGen();
@@ -1984,13 +1992,13 @@ void B4Mesh::PerformancesB4Mesh(){
   bgSize = bgSize / n;
   txCount = txCount / n;
 }
-*/
+
 
 void B4Mesh::debug(string suffix){
- /*
+ 
   std::cout << Simulator::Now().GetSeconds() << "s: B4Mesh : Node " << node->GetId() <<
       " : " << suffix << endl;
   debug_suffix.str("");
- */
+ 
 }
  

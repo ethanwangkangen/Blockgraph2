@@ -87,39 +87,91 @@ void Experiment::Init(){
 		StringValue(phy_mode));
 }
 
-void Experiment::CreateWifi(int lossModel){
-
-  wifiPhy = YansWifiPhyHelper();
+void Experiment::CreateWifi(int lossModel)
+{
+  // Initialise YansWifiPhyHelper
+  YansWifiPhyHelper wifiPhy;
   wifiPhy.Set("RxGain", DoubleValue(-10));
-  wifiPhy.SetPcapDataLinkType (WifiPhyHelper::DLT_IEEE802_11_RADIO);
+  wifiPhy.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
 
-  YansWifiChannelHelper wifiChannel;  
+  // Create and configure the channel
+  YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default();
   wifiChannel.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
 
-  // Loss propagation model
-  if (lossModel == Friis){
-    wifiChannel.AddPropagationLoss("ns3::FriisPropagationLossModel");
-  } else if (lossModel == Range){
-    wifiChannel.AddPropagationLoss("ns3::RangePropagationLossModel", 
-        "MaxRange", DoubleValue(100)); // Change this parametter to increase or dicrease the communication range (m)
-  } else if (lossModel == LogDist){
-    wifiChannel.AddPropagationLoss("ns3::LogDistancePropagationLossModel", 
-        "Exponent", DoubleValue(2.5));
-  } else if (lossModel == Fixed){
-    wifiChannel.AddPropagationLoss("ns3::FixedRssLossModel", 
-        "Rss", DoubleValue(-80)); 
+  // Configure propagation loss model
+  switch (lossModel)
+  {
+    case Friis:
+      wifiChannel.AddPropagationLoss("ns3::FriisPropagationLossModel");
+      break;
+
+    case Range:
+      wifiChannel.AddPropagationLoss("ns3::RangePropagationLossModel",
+                                     "MaxRange", DoubleValue(100)); // Adjustable range
+      break;
+
+    case LogDist:
+      wifiChannel.AddPropagationLoss("ns3::LogDistancePropagationLossModel",
+                                     "Exponent", DoubleValue(2.5));
+      break;
+
+    case Fixed:
+      wifiChannel.AddPropagationLoss("ns3::FixedRssLossModel",
+                                     "Rss", DoubleValue(-80));
+      break;
   }
 
+  // Attach channel to PHY
   wifiPhy.SetChannel(wifiChannel.Create());
-  wifi.SetStandard(WIFI_STANDARD_80211g);
-  wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager", "DataMode",
-      StringValue(phy_mode), "ControlMode", StringValue(phy_mode));
 
+  // Configure Wifi standard and rate
+  WifiHelper wifi;
+  wifi.SetStandard(WIFI_STANDARD_80211g);
+  wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager",
+                               "DataMode", StringValue(phy_mode),
+                               "ControlMode", StringValue(phy_mode));
+
+  // Set MAC to adhoc mode
   WifiMacHelper wifiMac;
   wifiMac.SetType("ns3::AdhocWifiMac");
-  devices = wifi.Install (wifiPhy, wifiMac, nodes);
 
+  // Install on nodes
+  devices = wifi.Install(wifiPhy, wifiMac, nodes);
 }
+
+// void Experiment::CreateWifi(int lossModel){
+
+//   wifiPhy = YansWifiPhyHelper();
+//   wifiPhy.Set("RxGain", DoubleValue(-10));
+//   wifiPhy.SetPcapDataLinkType (WifiPhyHelper::DLT_IEEE802_11_RADIO);
+
+//   YansWifiChannelHelper wifiChannel;  
+//   wifiChannel.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
+
+//   // Loss propagation model
+//   if (lossModel == Friis){
+//     wifiChannel.AddPropagationLoss("ns3::FriisPropagationLossModel");
+//   } else if (lossModel == Range){
+//     wifiChannel.AddPropagationLoss("ns3::RangePropagationLossModel", 
+//         "MaxRange", DoubleValue(100)); // Change this parametter to increase or dicrease the communication range (m)
+//   } else if (lossModel == LogDist){
+//     wifiChannel.AddPropagationLoss("ns3::LogDistancePropagationLossModel", 
+//         "Exponent", DoubleValue(2.5));
+//   } else if (lossModel == Fixed){
+//     wifiChannel.AddPropagationLoss("ns3::FixedRssLossModel", 
+//         "Rss", DoubleValue(-80)); 
+//   }
+
+//   wifiPhy.SetChannel(wifiChannel.Create());
+//   wifi.SetStandard(WIFI_STANDARD_80211g);
+//   wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager", "DataMode",
+//       StringValue(phy_mode), "ControlMode", StringValue(phy_mode));
+
+//   WifiMacHelper wifiMac;
+//   wifiMac.SetType("ns3::AdhocWifiMac");
+//   devices = wifi.Install (wifiPhy, wifiMac, nodes);
+
+// }
 
 void Experiment::CreateMobility(int mobilityModel){
   
