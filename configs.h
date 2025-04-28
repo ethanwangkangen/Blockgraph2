@@ -7,7 +7,7 @@
 #define TX_MEAN_SIZE 450
 
 // Minimum time to propagate a block before creating a new one
-#define TIME_BTW_BLOCK 5
+#define TIME_BTW_BLOCK 10
 
 // Number of transactions allowed in a block
 #define MAX_SIZE_BLOCK 54  // In KB
@@ -16,7 +16,8 @@
 #define MIN_SIZE_BLOCK 36  // In KB
 
 // Size of the mempool
-#define SIZE_MEMPOOL 500  // In KB
+#define SIZE_MEMPOOL 5000  // In KB
+//Was originally 500. Increased by tenfold to test.
 
 #define SEC_60_TIMER 60
 

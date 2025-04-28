@@ -73,7 +73,7 @@ void B4MeshOracle::SetUp(Ptr<Node> node, vector<Ipv4Address> peers){
 		recv_sock = Socket::CreateSocket(node, tid);
 	}
 
-	InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(),80);
+	InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(),90);
 	recv_sock->Bind(local);
 	recv_sock->SetRecvCallback (MakeCallback (&B4MeshOracle::ReceivePacket, this));
 
@@ -199,7 +199,7 @@ void B4MeshOracle::SendPacket(ApplicationPacket& packet, Ipv4Address ip, bool sc
 	// Open the sending socket
 	TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
 	Ptr<Socket> source = Socket::CreateSocket (node, tid);
-	InetSocketAddress remote = InetSocketAddress (ip, 80);
+	InetSocketAddress remote = InetSocketAddress (ip, 90);
 	source->Connect(remote);
 
 	int res = source->Send(pkt);
@@ -965,8 +965,9 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 
 	// Actual committing logic here
 	for (int idx = prev_commit_index; idx < commit_index; ++idx) {
-		if (idx >= 0 && idx <= log.size()-1) { // Added this check
-			string hash = log[idx].second;
+		int new_committed_entry = idx+1;
+		if (new_committed_entry >= 0 && new_committed_entry <= log.size()-1) { // Added this check
+			string hash = log[new_committed_entry].second;
 			if (blockpool.count(hash) > 0){ // Only want to send actual Blocks to Blockgraph, not Config Change Entries
 				Block b = blockpool[hash];
 				IndicateBlockCommit(b);
@@ -976,6 +977,7 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 		}
 
 	}
+	
 
 	debug("Got to here7");
 
@@ -1068,8 +1070,9 @@ void B4MeshOracle::ProcessEntriesAck(append_entries_ack_t ack_entries){
 
 	// Actual committing logic here
 	for (int idx = prev_commit_index; idx < commit_index; ++idx) {
-		if (idx >= 0 && idx <= log.size()-1) { // Added this check
-			string hash = log[idx].second;
+		int new_committed_entry = idx+1;
+		if (new_committed_entry >= 0 && new_committed_entry <= log.size()-1) { // Added this check
+			string hash = log[new_committed_entry].second;
 			if (blockpool.count(hash) > 0){ // Only want to send actual Blocks to Blockgraph, not Config Change Entries
 				Block b = blockpool[hash];
 				IndicateBlockCommit(b);
@@ -1352,15 +1355,21 @@ void B4MeshOracle::SendBlock(Block& b){ // Should this be Block& or just Block?
 }
 
 void B4MeshOracle::SendBlock(Block& b, int term){ // Should this be Block& or just Block?
-	// Consensus version:
-	//AppendLog(b, term); // Term = 1 means just add to the current term
 
-	// Stub version: No consensus
-	for (auto n : current_group) {
-		GetB4MeshOracleOf(n.first)->IndicateBlockCommit(b);
-	}
+	// For testing purposes
+	int i = 0; // 1 if consensus, 0 if stub
+
+	
+	if (i==1) {
+		AppendLog(b, term); // Consensus version
+	} else {
+		// Stub version: No consensus
+		
+		for (auto n : current_group) {
+			GetB4MeshOracleOf(n.first)->IndicateBlockCommit(b);
+		}
+	}	
 }
-
 
 void B4MeshOracle::IndicateBlockCommit(Block b){
 

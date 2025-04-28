@@ -220,9 +220,9 @@ void B4Mesh::ReceivePacket(Ptr<Socket> socket){
       InetSocketAddress iaddr = InetSocketAddress::ConvertFrom(from);
       Ipv4Address ip = iaddr.GetIpv4();
 
-     // debug_suffix.str("");
-      //debug_suffix << " Received Packet : New packet of " << packet->GetSize() << "B from Node " << ip;
-      //debug(debug_suffix.str());
+     debug_suffix.str("");
+      debug_suffix << " Received Packet : New packet of " << packet->GetSize() << "B from Node " << ip;
+      debug(debug_suffix.str());
 
       string parsedPacket;
       char* packetInfo = new char[packet->GetSize()];
@@ -233,22 +233,22 @@ void B4Mesh::ReceivePacket(Ptr<Socket> socket){
 
       try{
         ApplicationPacket p(parsed_packet);
-        // For traces propuses
+        // For traces purposes
         b4mesh_throughput[Simulator::Now().GetSeconds()] = p.CalculateSize();
 
         /* ------------ TRANSACTION TREATMENT ------------------ */
         if (p.GetService() == ApplicationPacket::TRANSACTION){
-          /*
+          // /*
           debug_suffix.str("");
           debug_suffix << "Received Packet : TRANSACTION from: " <<  GetIdFromIp(ip) << endl;
           debug(debug_suffix.str());
-          */
+          // */
           Transaction t(p.GetPayload());
-          // For traces propuses
+          // For traces purposes
           TraceTxsRcv(stoi(t.GetHash()),Simulator::Now().GetSeconds());
           // Transaction Processing Delay
           float process_time =GetExecTimeTXtreatment(blockgraph.GetBlocksCount());
-          // For traces propuses
+          // For traces purposes
           p_t_t_t += process_time;
 
           Simulator::Schedule(MilliSeconds(process_time),
@@ -261,7 +261,7 @@ void B4Mesh::ReceivePacket(Ptr<Socket> socket){
           debug_suffix << "Received Packet : BLOCK from: " <<  GetIdFromIp(ip) << endl;
           debug(debug_suffix.str());
           Block b(p.GetPayload());
-          // For traces propuses
+          // For traces purposes
           TraceBlockRcv(Simulator::Now().GetSeconds(), stoi(b.GetHash()));
           // Block Processing delay
           float process_time = GetExecTimeBKtreatment(blockgraph.GetBlocksCount()) ;
@@ -349,11 +349,11 @@ void B4Mesh::SendPacket(ApplicationPacket& packet, Ipv4Address ip, bool
   source->Close();
 
   if (res > 0){
-    /*
+    // /*
     debug_suffix.str("");
     debug_suffix << GetIpAddress() << " sends a packet of size " << pkt->GetSize() << " to " << ip << endl;
     debug(debug_suffix.str());
-    */
+    // */
   }
   else{
     
@@ -441,7 +441,7 @@ void B4Mesh::SendTransaction(Transaction t){
   }
   for (auto& dest : group){
     groupDestination.push_back(dest.second);
-    // For traces propuses
+    // For traces purposes
     if (trace){
       TraceTxsSend(dest.first, stoi(t.GetHash()), Simulator::Now().GetSeconds());
     }
@@ -466,7 +466,7 @@ void B4Mesh::TransactionsTreatment(Transaction t){
         pending_transactions_time[t.GetHash()] = Simulator::Now().GetSeconds();
       } else { // No space in mempool.
 //        debug("Transaction's Mempool is full\n Dumping transaction...");
-        // For traces propuses
+        // For traces purposes
         lostTrans++;
     //    TRACE << "MEMPOOL_FULL" << " " << "TXS_LOST" << " " << lostTrans << endl;
       }
@@ -484,7 +484,7 @@ void B4Mesh::TransactionsTreatment(Transaction t){
 }
 
 void B4Mesh::RetransmitTransactions(){
-  // Retransmission of transactions to be sure that old transactinos are register 
+  // Retransmission of transactions to be sure that old transactions are registered
   int i = 0;
   if (pending_transactions.size() > 0){
     for (auto mem_i : pending_transactions){
@@ -958,7 +958,7 @@ void B4Mesh::SendBlockto(string hash_p, Ipv4Address destAddr){
     debug(debug_suffix.str());
     ApplicationPacket packet(ApplicationPacket::BLOCK, block.Serialize());
     SendPacket(packet, destAddr);
-    // For traces propuses
+    // For traces purposes
     TraceBlockSend(GetIdFromIp(destAddr), Simulator::Now().GetSeconds(), stoi(block.GetHash()));
   }
   else {
@@ -1330,7 +1330,7 @@ void B4Mesh::SendBranch4Sync(const string& msg_payload, Ipv4Address destAddr){
       debug(debug_suffix.str());
       ApplicationPacket packet(ApplicationPacket::BLOCK, b_grp.Serialize());
       SendPacket(packet, destAddr);
-      // For trace propuses
+      // For trace purposes
       TraceBlockSend(GetIdFromIp(destAddr), Simulator::Now().GetSeconds(), stoi(b_grp.GetHash()));
     }
   }
@@ -1351,7 +1351,7 @@ bool B4Mesh::TestPendingTxs(){
     }
   }
   else {
-    debug(" TestPendingTxs: Not allow to create a block so fast");
+    debug(" TestPendingTxs: Not allowed to create a block so fast");
     return false;
   }
 }
@@ -1425,7 +1425,7 @@ void B4Mesh::GenerateBlocks(){
         debug(" GenerateBlock: Generating a Regular block because a merge is already in process");
         block = GenerateRegularBlock(block);
       } else {
-        debug(" GenerateBlock: Generating a Merge block not beacause of a merge process");
+        debug(" GenerateBlock: Generating a Merge block not because of a merge process");
         block = GenerateMergeBlock(block);
       }
     } else {
@@ -1444,7 +1444,7 @@ void B4Mesh::GenerateBlocks(){
 
   lastBlock_creation_time = (int)Simulator::Now().GetSeconds();
 
-   // FOR TRACES PROPUSES
+   // FOR TRACES purposes
   BlockCreationRate(block.GetHash(), block.GetGroupId(), block.GetTxsCount(), block.GetTimestamp());
 
   float process_time = GetExecTime(block.GetTxsCount());
@@ -1578,7 +1578,7 @@ void B4Mesh::GetBlock(Block b) {
     debug_suffix.str("");
     debug_suffix << "Received a new block : " << b << " from "  << " with hash " << b.GetHash().data() << endl;
     debug(debug_suffix.str());
-    // For traces propuses
+    // For traces purposes
     TraceBlockRcv(Simulator::Now().GetSeconds(), stoi(b.GetHash()));
     // Processing delay of the block. It is calculated base on the packet size.
     float process_time = GetExecTimeBKtreatment(blockgraph.GetBlocksCount());
