@@ -387,7 +387,6 @@ class B4MeshOracle : public Application{
 		int gathered_votes;
 
 
-
 		// Variables related to NS3
 		EventId election_timeout_event;
 		bool running;
@@ -416,6 +415,9 @@ class B4MeshOracle : public Application{
 		pair<float, int> sent_bytes;
 		pair<float, int> received_messages;
 		pair<float, int> sent_messages;
+
+
+		double sentPacketSizeTotalConsensus; // Total size of all packets sent
 
 		B4MTraces* traces;
 		
