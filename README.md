@@ -6,50 +6,49 @@ My contribution has been simply been to integrate the c4m consensus algorithm in
 
 All credit goes to the original author, whose paper can be found here https://theses.hal.science/tel-03922843/document
 
+Some of the following README.md has been modified from the original repositories to reflect the updated instructions.
+
 --------------------------------------------------------------------------------
 # B4Mesh
 Development of a blockchain technology for mesh and ad hoc networks for `ns3` simulator
 
 ## Introduction
 
-This code implements a network environment using the network simulator `ns3` framework version `3.30`. It features a full network stack that allows us to make an actual implementation of our blockgraph algorithm at the application layer.
+This code implements a network environment using the network simulator `ns3` framework version `3.44`. It features a full network stack that allows us to make an actual implementation of our blockgraph algorithm at the application layer.
 
 This code needs to be seen as an application of the `ns3` framework. Knowing how to use it, it will help in the understanding of this code. However, the algorithms behind the blockgraph algorithm can be understood as is. Indeed, we took care to making a clear distinction between the protocols' implementations and the interfaces within the simulator.
 
 ## General Information
 
-This code makes a heavy use of asynchrone programming. This means that implemanted applications react to interruption events and/or procedures schedule in an event loop. It is advised for the reader to be familiar with the principles of asynchrone programming (event loop, callback functions, ...).
+This code makes a heavy use of asynchronous programming. This means that implemanted applications react to interruption events and/or procedures schedule in an event loop. It is advised for the reader to be familiar with the principles of asynchronous programming (event loop, callback functions, ...).
 
 Although we tried to make most of the serialization/deserialization process in the application_packet and data structure classes, some of these operations may be scattered around the code, mainly in procedure that process protocol messages. So it is also advised for the reader to be familiar with the concept of data serialization/deserialization and basic raw data processing in `C/C++`.
 
 ## ns3 configuration
 
-**NB** : Before running this project make sure to have `ns3` version 3.33 installed. <br />
+**NB** : Before running this project make sure to have `ns3` version 3.44 installed. <br />
 To install **ns3** follow this tutorial -> [https://www.nsnam.org/docs/tutorial/html/getting-started.html] 
 
-### **Prepare the simulation environment**
+### **Build the project**
 
-* Extract b4mesh.tar.xz into the scratch folder
-  Usually at : *../ns-3.30/scratch/b4mesh*
-> cd b4mesh
-* Configure 'waf' to use a debug profile 
-> ../.././waf configure --build-profile=debug --enable-examples --enable-tests --disable-werror <br />
-> ../.././waf 
-* Test `ns3` simulator
-> ../.././waf --run hello-simulator
-* The output of this command should be
-> Hello Simulator <br />
+To build the project with CMake:
+Start from top level ns3.44 folder.
+> cd ../ns-3.44
 
-**If you don't see this output refer yourself to the tutorial link.**
+Configure the build
+> cmake -B build
 
-## Compile and execute b4mesh simulation
+Or from within the b4mesh folder,
+> ./build.sh
 
-You can execute a simple simulation by tapping the following command:
+### **Compile and execute b4mesh simulation**
 
-> ../.././waf --run b4mesh
+Then run the script with
+> ./run.sh {arguments}
 
-This command will execute a simulation of the b4mesh protocol having default arguments. <br />
-The follownig table resumes the available arguments and its default vaules. 
+This script also generates the associated graphs, which can be found in the /results folder.
+
+The following table resumes the available arguments and its default vaules. 
 
 **Arguments** | **Description** | **Values** | **Type** | **Default Value**
 -------------- | --------------- | --------- | -------- | -----------------
@@ -63,11 +62,11 @@ The follownig table resumes the available arguments and its default vaules.
 
 A list of the available arguments can be seen by executing the following command:
 
-> ../.././waf --run "b4mesh --printHelp"
+> ./run.sh --help
 
-As an example, you can run the following simulation that sets the second mobility scenario, the number of nodes at 12 and a simulation time of 1000 seconds. <br /> <span style="color:red"> Remember: If an argument is NOT specify, it will take it default value.</span>
+As an example, you can run the following simulation that sets the second mobility scenario, the number of nodes at 12 and a simulation time of 1000 seconds. <br /> <span style="color:red"> Remember: If an argument is NOT specified, it will take it default value.</span>
 
-> ../.././waf --run "b4mesh --nNodes=12 --sTime=1000 --nScen=2 "
+> ./run.sh --nNodes=12 --sTime=1000 --nScen=2
 
 ### Transaction Generation Rate 
 The transaction generation rate (λ) is entered for a singe node. <br />
@@ -187,7 +186,7 @@ void B4Mesh::debug(string suffix){
 ### **Save your traces in a file**
 
 In order to save the traces of a simulation you only need to redirect the output of the program to a file.
-> ../.././waf --run b4mesh > trace.txt
+> ./run.sh > trace.txt
 
 ### **See the results of a simulation**
 
