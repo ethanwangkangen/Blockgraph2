@@ -24,13 +24,13 @@
 // B4Mesh recurrent tasks
 #define SEC_10_TIMER 10
 
-// B4esh recirrent sampling
+// B4esh recurrent sampling
 #define SEC_5_TIMER 5
 
 // B4Mesh Timer to test block creation
 #define TESTMEMPOOL_TIMER 1.5
 
-// Transaction re transmission timer
+// Transaction retransmission timer
 #define RETRANSMISSION_TIMER 60
 
 // b4mesh-mobility

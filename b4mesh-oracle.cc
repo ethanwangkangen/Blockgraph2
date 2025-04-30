@@ -58,6 +58,8 @@ void B4MeshOracle::SetUp(Ptr<Node> node, vector<Ipv4Address> peers){
 	received_messages = make_pair(-1.0, -1);
 	sent_messages = make_pair(-1.0, -1);
 
+	sentPacketSizeTotalConsensus = 0;
+
 	this->peers = peers;
 	this->node = node;
 
@@ -185,6 +187,7 @@ void B4MeshOracle::SendPacket(ApplicationPacket& packet, Ipv4Address ip, bool sc
 	if (running == false){
     	return;
 	}
+	
 
 	// // I don't really understand this still.
 	// if (!scheduled){
@@ -195,6 +198,9 @@ void B4MeshOracle::SendPacket(ApplicationPacket& packet, Ipv4Address ip, bool sc
 	// }
     // Create the packet to send
   	Ptr<Packet> pkt = Create<Packet>((const uint8_t*)(packet.Serialize().data()), packet.GetSize());
+
+	// Traces: Add by Ethan
+	sentPacketSizeTotalConsensus += pkt->GetSize();
 
 	// Open the sending socket
 	TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
@@ -566,6 +572,7 @@ void B4MeshOracle::ProcessVoteResponse(request_vote_ack_t ack_vote){
 		debug(debug_suffix.str());
 		current_state = LEADER;
 		SetCurrentLeader(node->GetId());
+		indicateNewLeader(nodesB4mesh.at(node->GetId())); //ADDED THIS!
 		
 		end_election = Simulator::Now().GetSeconds();
 		//traces->EndElection(end_election, node->GetId());
@@ -881,7 +888,7 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 
 		if (entries.msg_type == APPEND_ENTRY){
 			Block b(log_entries);
-			debug_suffix << "Received a block : " << b;
+			debug_suffix << "Received a block : " << b << " with hash " << b.GetHash();
 			debug(debug_suffix.str());
 			if (entries.prev_log_index == LastLogIndex()){
 				// New entry
@@ -1393,9 +1400,9 @@ void B4MeshOracle::PrintLog(){
 }
 
 void B4MeshOracle::debug(string suffix){
-	// cout << Simulator::Now().GetSeconds() << "s: B4MeshOracle : Node " << node->GetId() <<
-    //   " : " << suffix << endl;
-  	// debug_suffix.str("");
+	cout << Simulator::Now().GetSeconds() << "s: B4MeshOracle : Node " << node->GetId() <<
+      " : " << suffix << endl;
+  	debug_suffix.str("");
 
 }
 

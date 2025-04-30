@@ -10,8 +10,8 @@ fi
 
 for i in $(seq 0 "$(($1-1))");
 do
-	  ./txt2png ../Traces/blockgraph-$i.txt ../results/graph-$i.png
-    ./txt2Png_time ../Traces/blockgraph-$i.txt ../results/graphTime-$i.png
+	  ./txt2Png ../../../build/scratch/b4mesh/Traces/blockgraph-$i.txt ../results/graph-$i.png
+    ./txt2Png_time ../../../build/scratch/b4mesh/Traces/blockgraph-$i.txt ../results/graphTime-$i.png
 done
 
 echo "Results availables in ../results/"

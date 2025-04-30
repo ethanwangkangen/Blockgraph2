@@ -426,6 +426,10 @@ class B4Mesh : public Application{
     int numRTxsG; // The number of transactions retransmitted 
     int numDumpingBlock; // The number of dumped blocks because either is alredy in the blockgraph or in the waiting list
     int numDumpingTxs; // The number of dumped txs because rither is already in blockgrap or in mempool
+
+    double sentPacketSizeTotal; // Total size of all packets sent
+    double sentTxnPacketSize; // Total size of all transaction packets sent
+
     double interArrival;   // the mean time of the generation of a transaction
     double startmergetime;
     double endmergetime;
