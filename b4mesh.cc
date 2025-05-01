@@ -1570,6 +1570,7 @@ void B4Mesh::SendBlockToConsensus(Block b){
   for (auto &node : group){
     TraceBlockSend(node.first, Simulator::Now().GetSeconds(), stoi(b.GetHash()));
   }
+
 }
 
 // **************** CONSENSUS INTERFACES METHODS *****************
@@ -1583,7 +1584,7 @@ void B4Mesh::RecvBlock(void * b4, Block b) {
 
   Ptr<B4Mesh> ptr_b = (B4Mesh *) b4;
   ptr_b->GetBlock(b);
-
+  
 }
 
 void B4Mesh::GetBlock(Block b) {

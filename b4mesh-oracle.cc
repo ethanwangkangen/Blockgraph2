@@ -369,7 +369,7 @@ void B4MeshOracle::TriggerElectionTimeout(){
 
 	// for (auto& n : current_group) {
 	// 	Ipv4Address ip = n.second();
-	// 	if (GetIpAddres() ! = ip) { // Don't send to self
+	// 	if (GetIpAddress() ! = ip) { // Don't send to self
 	// 		SendPacket(pkt, ip, false, "REQ_VOTE");
 	// 	}
 	// }
@@ -490,7 +490,7 @@ B4MeshOracle::request_vote_ack_t B4MeshOracle::ProcessRequestVote(request_vote_h
 
   	// David: Should it be less or equal to current_term
   	// What happen if msg.term == current_term ?
-	if (msg.term < current_term) {
+	if (msg.term <= current_term) { //Changed to this
 		debug_suffix << "Candidate term is less advanced";
 		debug(debug_suffix.str());
 		return ret;
@@ -1056,7 +1056,7 @@ void B4MeshOracle::ProcessEntriesAck(append_entries_ack_t ack_entries){
 			debug_suffix << commit_candidate << " / " << LastLogIndex() << " group " <<
 				log[commit_candidate].second << " - " << count;
 			debug(debug_suffix.str());
-			if ((uint32_t)count == current_group.size()){ // We want unanimity to commit config
+			if ((uint32_t)count == current_group.size()){ // We want unanimity to commit config. WAS ORIGINALLY == size
 				// change entries or first entry after
 				// config change
 				debug_suffix <<"***Increment commit index from " << commit_index << " to ";
@@ -1115,12 +1115,12 @@ void B4MeshOracle::AppendLog(Block&b, int term) { // Originally called InsertEnt
 	if (blockpool.count(b.GetHash()) == 0 || true) {
 		log.push_back(make_pair(term, b.GetHash()));
 		blockpool[b.GetHash()] = b;
-		// if (IsLeader()){
-		// 	debug_suffix << "Add new entry " << b;
-		// 	debug(debug_suffix.str());
-		// 	match_indexes[node->GetId()] = LastLogIndex(); // Should this be changing last_applied? 
-		// 	next_indexes[node->GetId()] = LastLogIndex()+1;
-		// }
+		if (IsLeader()){
+		 	debug_suffix << "Add new entry " << b;
+		 	debug(debug_suffix.str());
+		 	match_indexes[node->GetId()] = LastLogIndex(); // Should this be changing last_applied? 
+		 	next_indexes[node->GetId()] = LastLogIndex()+1;
+		}
 	}
 }
 
@@ -1364,7 +1364,7 @@ void B4MeshOracle::SendBlock(Block& b){ // Should this be Block& or just Block?
 void B4MeshOracle::SendBlock(Block& b, int term){ // Should this be Block& or just Block?
 
 	// For testing purposes
-	int i = 0; // 1 if consensus, 0 if stub
+	int i = 1; // 1 if consensus, 0 if stub
 
 	
 	if (i==1) {
