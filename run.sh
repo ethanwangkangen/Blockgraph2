@@ -7,6 +7,6 @@ sudo ../../build/scratch/b4mesh/./ns3.44-main-default  "$@" > traces.txt
 cd scripts
 sudo ./creategraphs 10
 cd ..
-xdg-open results
-xdg-open traces.txt
-xdg-open ../../build/scratch/b4mesh/Traces
+#xdg-open results
+#xdg-open traces.txt
+#xdg-open ../../build/scratch/b4mesh/Traces
