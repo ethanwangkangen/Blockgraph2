@@ -47,7 +47,7 @@ class Experiment{
     void CreateWifi(int lossModel);
 
     /**
-     * Chooses a mobility model and deplyes the nodes 
+     * Chooses a mobility model and deploys the nodes 
      * over an area in a grid topology.
      */
     void CreateMobility(int mobilityModel);
@@ -83,17 +83,19 @@ class Experiment{
     NodeContainer nodes;
     NodeContainer leaders;
     NodeContainer followers;
+
     WifiHelper wifi;
     YansWifiPhyHelper wifiPhy;
     NetDeviceContainer devices;
     Ipv4InterfaceContainer interfaces;
     OlsrHelper olsr;
     AodvHelper aodv;
+
     ApplicationContainer b4mesh_apps;
-    ApplicationContainer consensus_apps;
     ApplicationContainer mobility_apps;
-    vector<B4MTraces> consensus_traces;
     ApplicationContainer consensus_oracle_apps;
+    
+    vector<B4MTraces> consensus_traces;
     vector<B4MTraces> consensus_oracle_traces;
 
     B4MTraces b4mesh_traces;
@@ -113,13 +115,13 @@ class Experiment{
   public:
     /*
      * Testing and try
-     */
-    static void CourseChange (std::string foo, Ptr<const MobilityModel> mobility)
-    {
-      Vector pos = mobility->GetPosition ();
-      Vector vel = mobility->GetVelocity ();
-      std::cout << Simulator::Now () << ", model=" << mobility << ", POS: x=" << pos.x << ", y=" << pos.y <<
-        ", z=" << pos.z << "; VEL:" << vel.x << ", y=" << vel.y << ", z=" << vel.z << std::endl;
-    }
+    //  */
+    // static void CourseChange (std::string foo, Ptr<const MobilityModel> mobility)
+    // {
+    //   Vector pos = mobility->GetPosition ();
+    //   Vector vel = mobility->GetVelocity ();
+    //   std::cout << Simulator::Now () << ", model=" << mobility << ", POS: x=" << pos.x << ", y=" << pos.y <<
+    //     ", z=" << pos.z << "; VEL:" << vel.x << ", y=" << vel.y << ", z=" << vel.z << std::endl;
+    // }
 };
 #endif
