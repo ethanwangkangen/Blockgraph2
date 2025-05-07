@@ -270,9 +270,9 @@ void B4Mesh::ReceivePacket(Ptr<Socket> socket){
       InetSocketAddress iaddr = InetSocketAddress::ConvertFrom(from);
       Ipv4Address ip = iaddr.GetIpv4();
 
-      debug_suffix.str("");
-      debug_suffix << " Received Packet : New packet of " << packet->GetSize() << "B from Node " << ip;
-      debug(debug_suffix.str());
+      // debug_suffix.str("");
+      // debug_suffix << " Received Packet : New packet of " << packet->GetSize() << "B from Node " << ip;
+      // debug(debug_suffix.str());
 
       string parsedPacket;
       char* packetInfo = new char[packet->GetSize()];
@@ -288,9 +288,9 @@ void B4Mesh::ReceivePacket(Ptr<Socket> socket){
 
         /* ------------ TRANSACTION TREATMENT ------------------ */
         if (p.GetService() == ApplicationPacket::TRANSACTION){
-          debug_suffix.str("");
-          debug_suffix << "Received Packet : TRANSACTION from: " <<  GetIdFromIp(ip) << endl;
-          debug(debug_suffix.str());
+          // debug_suffix.str("");
+          // debug_suffix << "Received Packet : TRANSACTION from: " <<  GetIdFromIp(ip) << endl;
+          // debug(debug_suffix.str());
 
           Transaction t(p.GetPayload());
           // For traces purposes
@@ -410,13 +410,13 @@ void B4Mesh::SendPacket(ApplicationPacket& packet, Ipv4Address ip, bool schedule
   source->Close();
 
   if (res > 0){
-    debug_suffix.str("");
-    debug_suffix << GetIpAddress() << " sends a packet of size " << pkt->GetSize() << " to " << ip << endl;
-    debug(debug_suffix.str());
+    // debug_suffix.str("");
+    // debug_suffix << GetIpAddress() << " sends a packet of size " << pkt->GetSize() << " to " << ip << endl;
+    // debug(debug_suffix.str());
   } else{
-    debug_suffix.str("");
-    debug_suffix << GetIpAddress() << " failed to send a packet of size " << pkt->GetSize() << " to " << ip << endl;
-    debug(debug_suffix.str());
+    // debug_suffix.str("");
+    // debug_suffix << GetIpAddress() << " failed to send a packet of size " << pkt->GetSize() << " to " << ip << endl;
+    // debug(debug_suffix.str());
   }
 }
 
@@ -475,9 +475,9 @@ void B4Mesh::RegisterTransaction(string payload){
   t.SetPayload(payload);
   t.SetTimestamp(Simulator::Now().GetSeconds());
 
-  debug_suffix.str("");
-  debug_suffix << "Creating Transaction : " << t.GetHash().data() << endl;
-  debug(debug_suffix.str());
+  // debug_suffix.str("");
+  // debug_suffix << "Creating Transaction : " << t.GetHash().data() << endl;
+  // debug(debug_suffix.str());
 
   TransactionsTreatment(t); // Essentially, adding to local mempool
 
@@ -494,9 +494,9 @@ void B4Mesh::RegisterTransaction(string payload){
  * call to BroadcastPacket().
  */
 void B4Mesh::BroadcastTransaction(Transaction t){
-  debug_suffix.str("");
-  debug_suffix << "Sending Transaction : " << t.GetHash().data() << endl;
-  debug(debug_suffix.str());
+  // debug_suffix.str("");
+  // debug_suffix << "Sending Transaction : " << t.GetHash().data() << endl;
+  // debug(debug_suffix.str());
 
   string serie = t.Serialize();
   ApplicationPacket packet(ApplicationPacket::TRANSACTION, serie);
@@ -564,9 +564,9 @@ void B4Mesh::RetransmitTransactions(){
     for (auto mem_i : txn_mempool){
       if (mem_i.second.GetTimestamp() + RETRANSMISSION_TIMER < Simulator::Now().GetSeconds() && i <= 10 ){
 
-        debug_suffix.str("");
-        debug_suffix << "Retransmission : ----> Transaction: " << mem_i.second.GetHash().data() << " with Timestamp of: " <<  mem_i.second.GetTimestamp() << endl;
-        debug(debug_suffix.str());
+        // debug_suffix.str("");
+        // debug_suffix << "Retransmission : ----> Transaction: " << mem_i.second.GetHash().data() << " with Timestamp of: " <<  mem_i.second.GetTimestamp() << endl;
+        // debug(debug_suffix.str());
 
         numRTxsG ++;
         BroadcastTransaction(mem_i.second);
@@ -608,13 +608,15 @@ bool B4Mesh::IsSpaceInMempool (){
 /**
  * Treatment of a received block, either merge or regular.
  * Updates lastLeader to leader of this block.
+ * If applicable: erases received block from missing list, adds it to waiting list if parents not in BG.
  * If received a merge block, AddBlockToBlockgraph() and StartSyncProcedure().
  * If received a regular block, check if parents are in Blockgraph.
  * If they aren't, check if they are in the missing list.
  * If aren't as well, then add them to the missing list.
  * If parents weren't in Blockgraph, can't add regular block to BG yet, so
  * just add it to the waiting list.
- * If parents are present, then AddBlockToBlockgraph() and UpdateWaitingList()
+ * If parents are present, then AddBlockToBlockgraph() and UpdateWaitingList().
+ * Updating of childless_hashes and recover_branch handled by AddBlockToBlockgraph().
  */
 void B4Mesh::BlockTreatment(Block b){
   if (running == false){
@@ -673,7 +675,7 @@ void B4Mesh::BlockTreatment(Block b){
           //Trace purpose
           waiting_list_time[b.GetHash()] = Simulator::Now().GetSeconds();
           // TRACE << "WAITING_LIST" << " " << "INSERT" << " " << b.GetHash().data() << endl;
-        } else {
+        } else { // Block's parents are in BG, so can add Block to BG.
           AddBlockToBlockgraph(b);
           if (block_waiting_list.size() > 0){
             UpdateWaitingList();
@@ -699,7 +701,7 @@ void B4Mesh::BlockTreatment(Block b){
 }
 
 /**
- * Called by ALL nodes (not just leader) after receiving and treating a merge block.
+ * Called by ALL nodes (NOT JUST LEADER) after receiving and treating a merge block.
  * The "transactions" here are the "transactions" of a merge block, therefore they are 
  * actually the childless hashes. 
  * For each of the childless hashes, make a call to ChildlessHashTreatment(). TODO: Complete this
@@ -717,7 +719,6 @@ void B4Mesh::StartSyncProcedure(vector<Transaction> transactions){
     string childless_hash = tmp.substr(n+1);
 
     ChildlessHashTreatment(childless_hash, GetIpAddressFromId(idnode));
-
   }
 
   if (GetB4MeshOracle(node->GetId())->IsLeader() == true){
@@ -748,10 +749,14 @@ void B4Mesh::SendBranchRequest(){
 
     if (recover_branch.count(cb) > 0){ 
       auto range = recover_branch.equal_range(cb); // Range of nodes that have this missing childless block
+      // eg. range.first = {hash1, nodeA}, range.second = {hash1, nodeB} etc.
+
       for (auto j = range.first; j != range.second; ++j){ // For ALL of these nodes, request for the entire chain.
+        // j = {hash1, nodeA}, etc.
+
         serie_branch_b_h = j->first; 
         string serie((char*)&branch_req, sizeof(group_branch_hdr_t));
-        serie += serie_branch_b_h;
+        serie += serie_branch_b_h; // Serialise the childless hash
 
         debug_suffix.str("");
         debug_suffix << " SendBranchRequest : Asking for this block chain: " << serie_branch_b_h  << " to node: " << j->second << endl;
@@ -763,14 +768,13 @@ void B4Mesh::SendBranchRequest(){
         request_count++;
         
         // Limit the number of requests that can be sent.
-
         if (GetB4MeshOracle(node->GetId())->IsLeader() == true){
-          if (request_count == ceil(double(peers.size())/(4))){  // number of branch request to different nodes
+          if (request_count == ceil(double(peers.size()))){  // number of branch request to different nodes. originally /double(4)
             goto cntt;
           }
         }
         else {
-          if (request_count == ceil(double(peers.size())/double(8))){  // number of branch request to different nodes
+          if (request_count == ceil(double(peers.size()))){  // number of branch request to different nodes. originally /double(8)
             goto cntt;
           }
         }
@@ -783,7 +787,7 @@ void B4Mesh::SendBranchRequest(){
 }
 
 /**
- * Takes a list of nodes and returns those that are not in the blockgraph.
+ * Takes a list of node hashes and returns those that are not in the blockgraph.
  */
 vector<string> B4Mesh::FilterNodesNotInBG(vector<string> nodes){
 
@@ -812,7 +816,7 @@ vector<string> B4Mesh::FilterNodesNotInBG(vector<string> nodes){
  * Originally, this was GetParentsNotInWl.
  * But I think logically, it should filter out those in missing list instead, not waiting list.
  * 
- * Takes a list of nodes and return those that are not in the missing list.
+ * Takes a list of node hashes and return those that are not in the missing list.
  */
 vector<string> B4Mesh::FilterNodesNotInML(vector<string> nodes){
 
@@ -851,7 +855,6 @@ vector<string> B4Mesh::FilterNodesNotInML(vector<string> nodes){
   }
   return ret;
 }
-
 
 /**
  * Returns true if block associated with this hash is in waiting list.
@@ -971,17 +974,18 @@ void B4Mesh::UpdateWaitingList(){
   bool addblock = true;
   while (addblock) {
     addblock = false;
-    for (auto it = block_waiting_list.cbegin(); it != block_waiting_list.cend();){
+    for (auto it = block_waiting_list.cbegin(); it != block_waiting_list.cend();){ // For each block in waiting list
       debug_suffix.str("");
       debug_suffix << "Update waiting list: starting with block: "<< it->first.data() << endl;
       debug(debug_suffix.str());
-      int i = 0;
+
+      int parentCount = 0; // How many parents are in Blockgraph
       for(auto &hash : it->second.GetParents() ){
         if (blockgraph.HasBlock(hash)){
-          i++;
+          parentCount++;
         }
       }
-      if (it->second.GetParents().size() == i){ // if all parents are in blockgraph
+      if (it->second.GetParents().size() == parentCount){ // If all parents are in blockgraph
         // trace purpose
         total_waitingBlockTime += Simulator::Now().GetSeconds() - waiting_list_time[it->first];
         count_waitingBlock++;
@@ -1007,8 +1011,14 @@ void B4Mesh::UpdateWaitingList(){
   }
 }
 
+/**
+ * Add block to local blockgraph.
+ * If block was originally one of the midding_childless blocks, remove it from missing_childless_hashes.
+ * Update recover_branch if applicable as well.
+ * Remove transactions in block from the mempool.
+ * Called by BlockTreatment(). BlockTreatment() handles updating of waiting list and missing list.
+ */
 void B4Mesh::AddBlockToBlockgraph(Block b){
-
   vector<string>::iterator it;
   bool isMissing = false;
 
@@ -1048,17 +1058,22 @@ void B4Mesh::AddBlockToBlockgraph(Block b){
   CreateGraph(b);
 }
 
+/**
+ * Called by AddBlockToBlockgraph() to remove the transactions that are in a block added to Blockgraph from mempool.
+ */
 void B4Mesh::UpdatingMempool (vector<Transaction> transactions, string b_hash){
-
   for (auto &t : transactions){
     if (txn_mempool.count(t.GetHash()) > 0){
-      debug_suffix.str("");
-      debug_suffix << " UpdatingMempool: Transaction " << t.GetHash().data() << " founded" << endl;
-      debug(debug_suffix.str());
+      // debug_suffix.str("");
+      // debug_suffix << " UpdatingMempool: Transaction " << t.GetHash().data() << " found" << endl;
+      // debug(debug_suffix.str());
+
       // Traces purpose 
       TraceTxLatency(t, b_hash);
+
       // erasing transaction from mempool
       txn_mempool.erase(t.GetHash());
+
       // traces purpose
       total_pendingTxTime += Simulator::Now().GetSeconds() - pending_transactions_time[t.GetHash()];
       count_pendingTx++;
@@ -1068,19 +1083,24 @@ void B4Mesh::UpdatingMempool (vector<Transaction> transactions, string b_hash){
       // debug_suffix.str("");
       // debug_suffix << " UpdatingMempool:  I don't know this transaction " << t.GetHash().data() << endl;
       // debug(debug_suffix.str());
+
       TraceTxLatency(t, b_hash);
     }
   }
 }
 
 // ********* REQUEST_BLOCK METHODS **************
-void B4Mesh::Ask4MissingBlocks(){
 
+/**
+ * Scheduled at regular intervals by RecurrentTasks(), to ask other nodes for missing blocks.
+ * Missing list maps hash of missing block to the node that is supposed to send it. TODO: clarify this.
+ * So for all these missing blocks, send a REQUEST_BLOCK Application Packet to the sender.
+ * Also send to the lastLeader, which is the leader of the most recent block added to local Blockgraph.
+ */
+void B4Mesh::Ask4MissingBlocks(){
   if (running == false){
     return;
   }
-
-  // Ask also the leader for missing blocks
 
   if (missing_block_list.size() > 0 ){
     debug(" Ask4MissingBlocks: List of missing parents");
@@ -1089,11 +1109,15 @@ void B4Mesh::Ask4MissingBlocks(){
         debug_suffix.str("");
         debug_suffix << "Ask4MissingBlocks: asking for block: " << missing_b.first << " to node: " << GetIdFromIp(missing_b.second) << endl;
         debug(debug_suffix.str());
+
         string serie = missing_b.first;
         ApplicationPacket packet(ApplicationPacket::REQUEST_BLOCK, serie);
+
         SendPacket(packet, missing_b.second);
+
         if (GetIdFromIp(missing_b.second) != lastLeader){
-          cout << "Sending to leader also " << endl;
+          debug("Sending to leader also ");
+
           SendPacket(packet, GetIpAddressFromId(lastLeader));
         }
       }
@@ -1105,12 +1129,13 @@ void B4Mesh::Ask4MissingBlocks(){
 
 }
 
-// function executed in response of a REQUEST_BLOCK (Ask4MissingBlocks)
+/**
+ * Called by sending node in response to a REQUEST_BLOCK packet, from a node asking 4 missing blocks.
+ */
 void B4Mesh::SendBlockTo(string hash_p, Ipv4Address destAddr){
-
   if (blockgraph.HasBlock(hash_p)){
     debug_suffix.str("");
-    debug_suffix << " SendBlockTo: Block " << hash_p << " founded!" << endl;
+    debug_suffix << " SendBlockTo: Block " << hash_p << " found!" << endl;
     debug(debug_suffix.str());
 
     Block block = blockgraph.GetBlock(hash_p);
@@ -1118,22 +1143,30 @@ void B4Mesh::SendBlockTo(string hash_p, Ipv4Address destAddr){
     debug_suffix.str("");
     debug_suffix << " SendBlockTo: Sending block to node: " << destAddr << endl;
     debug(debug_suffix.str());
+
     ApplicationPacket packet(ApplicationPacket::BLOCK, block.Serialize());
     SendPacket(packet, destAddr);
+
     // For traces purposes
     TraceBlockSend(GetIdFromIp(destAddr), Simulator::Now().GetSeconds(), stoi(block.GetHash()));
   }
   else {
     debug_suffix.str("");
-    debug_suffix << " SendBlockTo: Block " << hash_p << " not founded!" << endl;
+    debug_suffix << " SendBlockTo: Block " << hash_p << " not found!" << endl;
     debug(debug_suffix.str());
+
     return;
   }
 }
 
 // ************** CALCUL AND GROUP DETECTION METHODS ************************
-void B4Mesh::ReceiveNewTopologyInfo(pair<string, vector<pair<int, Ipv4Address>>> new_group, int natChange){
 
+/**
+ * Function called by Group Discovery Module, ie. b4mesh-mobility, to inform the app of the new group.
+ * natChange = MERGE/SPLIT..
+ * Schedules a call to UpdateTopologyInfo() after 5 seconds.
+ */
+void B4Mesh::ReceiveNewTopologyInfo(pair<string, vector<pair<int, Ipv4Address>>> new_group, int natChange){
   debug(" ReceiveNewTopology: New topology information ");
 
   change++;
@@ -1145,16 +1178,25 @@ void B4Mesh::ReceiveNewTopologyInfo(pair<string, vector<pair<int, Ipv4Address>>>
       &B4Mesh::UpdateTopologyInfo, this, change, new_group);
 }
 
+/**
+ * Function called by ReceiveNewTopologyInfo() after group change.
+ * natChange = MERGE/SPLIT..
+ * Schedules a call to UpdateTopologyInfo() after 5 seconds.
+ * If it really is a topology change, update groupId, update groupId_register (which is a list of all past groupIds)
+ * update previous and current groups.
+ * If change is a MERGE, CLEAR THE RECOVER_BRANCH and set startMerge=true.
+ * TODO: Is the above problematic? Clearing of recover_branch before the previous missing branches have been pulled??
+ */
 void B4Mesh::UpdateTopologyInfo(uint32_t tmp_change, pair<string, vector<pair<int, Ipv4Address>>> new_group){
-  
   debug(" UpdateTopologyInfo");
 
   if (change == tmp_change){
-    debug(" UpdateTopologyInfo: Checking if groups id are differents! ");
+    debug(" UpdateTopologyInfo: Checking if group ids are different! ");
+    
     if (new_group.first != groupId){
       debug(" UpdateTopologyInfo: Confirming topology change! ");
+
       vector<pair<int, Ipv4Address>> n_group = new_group.second;
-      //Updating groupId
       groupId = new_group.first;
       if (find(groupId_register.begin(), groupId_register.end(), groupId) == groupId_register.end()){
         groupId_register.push_back(groupId);
@@ -1163,13 +1205,15 @@ void B4Mesh::UpdateTopologyInfo(uint32_t tmp_change, pair<string, vector<pair<in
       previous_group = group;
       //Updating current group
       group = n_group;
+
       if (lastChange == MERGE){
-      debug(" UpdateTopologyInfo: This is a merge change! ");
-      recover_branch.clear();
-      startmergetime = Simulator::Now().GetSeconds();    
-      startMerge = true;
-      }
-      else if (lastChange == SPLIT){
+        debug(" UpdateTopologyInfo: This is a merge change! ");
+
+        recover_branch.clear(); // Is this a problematic line? Why is this necessary?
+        startmergetime = Simulator::Now().GetSeconds();
+
+        startMerge = true; // For StartMerge() to proceed.
+      } else if (lastChange == SPLIT){
         debug(" UpdateTopologyInfo: This is a split change! ");
       }
     } else {
@@ -1180,10 +1224,12 @@ void B4Mesh::UpdateTopologyInfo(uint32_t tmp_change, pair<string, vector<pair<in
   }
 }
 
-vector <pair<int, Ipv4Address>> B4Mesh::GetNewNodes(){
-
+/**
+ * Return nodes of current group that were NOT in the previous group, ie. just joined partition.
+ * Called by Ask4ChildlessHashes(). TODO: Here
+ */
+vector<pair<int, Ipv4Address>> B4Mesh::GetNewNodes(){
   vector<pair<int, Ipv4Address>> res = vector<pair<int, Ipv4Address>> ();
-
   for(auto n : group){
     if (n.first != node->GetId()){
       if(find(previous_group.begin(), previous_group.end(), n) == previous_group.end()){
@@ -1195,6 +1241,10 @@ vector <pair<int, Ipv4Address>> B4Mesh::GetNewNodes(){
   return res;
 }
 
+/**
+ * Return nodes of current group that WERE in the previous group.
+ * Called by GenerateMergeBlock(). TODO: Here
+ */
 vector<pair<int, Ipv4Address>> B4Mesh::GetNodesFromOldGroup(){
   vector<pair<int, Ipv4Address>> res = vector<pair<int, Ipv4Address>>  ();
   for (auto node : group){
@@ -1206,13 +1256,24 @@ vector<pair<int, Ipv4Address>> B4Mesh::GetNodesFromOldGroup(){
   return res;
 }
 
+/**
+ * Returns nature of last change, ie. MERGE or SPLIT
+ */
 int B4Mesh::GetLastChange() {
   return lastChange;
 }
 
 // ********* CHANGE_TOPO METHODS **************
-void B4Mesh::StartMerge(){
 
+/**
+ * Called by HaveNewLeader(), which is... TODO: here
+ * Called by leader to begin merge process. If startMerge, topology stable, so can start a merge.
+ * startMerge = true is set by UpdateTopologyInfo.
+ * Sets createBlock to false to stop creation of any new blocks,
+ * Then calls Ask4ChildlessHashes(). Once this is done, set startMerge to false again.
+ * TODO: Clarify what exactly does startMerge entail.
+ */
+void B4Mesh::StartMerge(){
   if (running == false){
     return;
   }
@@ -1226,45 +1287,58 @@ void B4Mesh::StartMerge(){
     debug_suffix << " StartMerge: Leader node: " << node->GetId()
                 << " starting the leader synchronization process..." << endl;
     debug(debug_suffix.str());
+
     createBlock = false;
-    Ask4ChildlessBlocks();
+    Ask4ChildlessHashes();
     startMerge = false;
 
   } else {
     debug("Can't start a merge now, topology not stable yet ");
+
     Simulator::Schedule(Seconds(1),
             &B4Mesh::StartMerge, this);
   }
-  
 }
 
-void B4Mesh::Ask4ChildlessBlocks(){
-
-  debug(" Ask4ChildlessBlocks: In leader synch process ");
+/**
+ * Called by leader in StartMerge(). 
+ * Asks nodes that just joined this new partition for the hashes of their childless blocks,
+ * by broadcasting CHANGE_TOPO Application Packet of type CHILDLESSBLOCK_REQ to them.
+ * Then starts a timer to call timer_childless_fct().
+ */
+void B4Mesh::Ask4ChildlessHashes(){
+  debug(" Ask4ChildlessHashes: In leader synch process ");
 
   childlessblock_req_hdr_t ch_req;
   ch_req.msg_type = CHILDLESSBLOCK_REQ;
-
   ApplicationPacket packet(ApplicationPacket::CHANGE_TOPO,
       string((char*)&ch_req, sizeof(ch_req)));
 
   vector<Ipv4Address> groupDestination = vector<Ipv4Address> ();
-  // Asking to new nodes for childless blocks
-  debug("B4MESH: Ask4ChildlessBlocks: Asking childless blocks to nodes:");
+
+  debug("B4MESH: Ask4ChildlessHashes: Asking childless blocks to nodes:");
+
   for (auto &dest : GetNewNodes()){
     debug_suffix.str("");
-    debug_suffix << " B4MESH: Ask4ChildlessBlocks: Node: " << dest.first << endl;
+    debug_suffix << " B4MESH: Ask4ChildlessHashes: Node: " << dest.first << endl;
     debug(debug_suffix.str());
+
     groupDestination.push_back(dest.second);
   }
+
   BroadcastPacket(packet, groupDestination);
 
   Simulator::Schedule(Seconds(6), 
             &B4Mesh::timer_childless_fct, this);
 }
 
+/**
+ * Scheduled call after Ask4ChildlessHashes() by leader.
+ * Assumes that after the delay, the nodes would have responded with their childless hashes to the leader,
+ * and leader done processing them(? not sure about this).
+ * Which means can set mergeBlock and createBlock=true, and call GenerateBlocks() to create the merge block.
+ */
 void B4Mesh::timer_childless_fct(){
-
   if (!createBlock){
     debug("Timer_childless has expired. Creating a merge block");
     mergeBlock = true;
@@ -1273,15 +1347,21 @@ void B4Mesh::timer_childless_fct(){
   }
 }
 
+/**
+ * Non-leader nodes call this in response to leader asking for their childless hashes.
+ * Sends them as a CHANGE_TOPO Application Packet with type CHILDLESSBLOCK_REP
+ */
 void B4Mesh::SendChildlessHashes(Ipv4Address destAddr){
   vector<string> myChildless = blockgraph.GetChildlessBlockList();
   string serie_hashes = "";
 
   for (auto &cb : myChildless){
     string tmp_str = cb;
+
     debug_suffix.str("");
-    debug_suffix << " SendChildlessHashes: Childless block founded : " << tmp_str;
+    debug_suffix << " SendChildlessHashes: Childless block found : " << tmp_str;
     debug(debug_suffix.str());
+
     serie_hashes += tmp_str;
   }
 
@@ -1293,12 +1373,17 @@ void B4Mesh::SendChildlessHashes(Ipv4Address destAddr){
     ApplicationPacket pkt(ApplicationPacket::CHANGE_TOPO, serie);
     SendPacket(pkt, destAddr, false);
   } else {
-    debug(" SendChildlessHashes: No childless block founded!");
+    debug(" SendChildlessHashes: No childless block found!");
   }
 }
 
+/**
+ * Called by leader to respond to non-leader's childless hashes sent.
+ * For each of the childless hashes, call ChildlessHashTreatment() on it.
+ * After all processed, CheckMergeBlockCreation(), which checks if all childless hashes received,
+ * and lets leader proceed with merge block creation before timer_childless_fct expires.
+ */
 void B4Mesh::ProcessChildlessResponse(const string& msg_payload, Ipv4Address senderAddr){
-  // Only executed by the leader
   string deserie = msg_payload;
   vector<string> sender_childless = vector<string> ();
   string tmp_hash = "";
@@ -1323,13 +1408,17 @@ void B4Mesh::ProcessChildlessResponse(const string& msg_payload, Ipv4Address sen
     debug_suffix << " ProcessChildlessResponse : Node: "  << node.second << " has childless block:" << node.first << endl;
     debug(debug_suffix.str());
   }
-
   CheckMergeBlockCreation();
-
 }
 
+/**
+ * Called by a leader node to process a childless hash. ALSO called by non-leader nodes to process the childless hashes received
+ * from a merge block.
+ * RegisterNode(): Update local recover_branch, noting that the sender node has the childless block.
+ * If leader's blockgraph and waiting list don't have the childless block, need to update missing list and missing_childless_hashes.
+ * RegisterNode() too, to update recover_branch.
+ */
 void B4Mesh::ChildlessHashTreatment(string childless_hash, Ipv4Address senderAddr){
-
   vector<string> myChildless = blockgraph.GetChildlessBlockList();
   vector<string>::iterator it;
 
@@ -1342,36 +1431,45 @@ void B4Mesh::ChildlessHashTreatment(string childless_hash, Ipv4Address senderAdd
 
     RegisterNode(childless_hash, senderAddr);  
     return;
-  } else {
-    // If childless block is not a childless block of mine
+  } else { // If childless block is not a childless block of mine
     debug_suffix.str("");
     debug_suffix << " ChildlessHashTreatment : This Childless block: "  << childless_hash << " is not a childless block of mine" << endl;
     debug(debug_suffix.str());
-    if (blockgraph.HasBlock(childless_hash)){
+
+    if (blockgraph.HasBlock(childless_hash)){ // Ignore childless hash since the blockgraph already has this block
       debug(" ChildlessHashTreatment: Childless block is present in local blockgraph...Ignoring childless block");
+
       return;
     } else {
       debug(" ChildlessHashTreatment: Childless block is not present in blockgraph...Checking if CB is present in the waiting list");
-      if (IsBlockInWaitingList(childless_hash)){
+
+      if (IsBlockInWaitingList(childless_hash)){ // Ignore childless hash since node it is already in waiting list, just awaiting ancestors
         debug(" ChildlessHashTreatment: Childless block is already present in the block_waiting_list...Ignoring childless block");
+
         return;
       } else {
         debug(" ChildlessHashTreatment: Childless block is not present in waiting list...Checking if CB is present in missing_block_list");
-        if (IsBlockInMissingList(childless_hash)){
+
+        if (IsBlockInMissingList(childless_hash)){ // Childless hash already in missing_block list. Just note that this sender node also has it.
           debug(" ChildlessHashTreatment: Childless block already in missing_block_list. Ignoring childless block");
+
           RegisterNode(childless_hash, senderAddr); 
           return;
-        } else {
+        } else { // Need to update missing_block_list and missing_childless_hashes with this.
           debug(" ChildlessHashTreatment: Block not in missing_block_list. Adding block to missing_block_list ");
+
           // Adding childless block hash in the list of missing block since we now know of it existence
           missing_block_list.insert({childless_hash, senderAddr}); 
+
           // Trace purpose
           missing_list_time[childless_hash] = Simulator::Now().GetSeconds();
           // TRACE << "MISSING_LIST" << " " << "INSERT" << " " << childless_hash.data() << endl;
           it = find(missing_childless_hashes.begin(), missing_childless_hashes.end(), childless_hash);
+
           if (it == missing_childless_hashes.end()){
             //If this childless block is not registered adding missing childless block to the list of childless block to recover
             debug(" ChildlessHashTreatment: Adding Childless block to vector missing_chidless");
+
             missing_childless_hashes.push_back(childless_hash);
           }
           RegisterNode(childless_hash, senderAddr);
@@ -1379,19 +1477,20 @@ void B4Mesh::ChildlessHashTreatment(string childless_hash, Ipv4Address senderAdd
       }
     }
   }
-
 }
 
+/**
+ * Called by ChildlessHashTreatment() to update recover_branch.
+ * Recover_branch is a multimap of {childless_hash -> id of a node that can send this block}.
+ * Each childless hash can be mapped to multiple nodes.
+ */
 void B4Mesh::RegisterNode(string childless_hash, Ipv4Address senderAddr){
-
-  // Register node answer
   debug(" Register node answer");
 
   int idSender = GetIdFromIp(senderAddr);
   bool findnode = false;
   
-  if (recover_branch.count(childless_hash) > 0 ){
-    // If the childless block has already been registered 
+  if (recover_branch.count(childless_hash) > 0 ){ // If the childless block has already been registered 
     findnode = false;
     auto range = recover_branch.equal_range(childless_hash);
 
@@ -1405,24 +1504,28 @@ void B4Mesh::RegisterNode(string childless_hash, Ipv4Address senderAddr){
       debug_suffix.str("");
       debug_suffix << " RegisterNode : Adding new childless block : "  << childless_hash << " for node: " << idSender << endl;
       debug(debug_suffix.str());
+
       recover_branch.insert(pair<string, int> (childless_hash, idSender));
     } else {
       debug_suffix.str("");
-      debug_suffix << " RegisterNode : Node: "  << idSender << " already register with same childless block: " << childless_hash << endl;
+      debug_suffix << " RegisterNode : Node: "  << idSender << " already registered with same childless block: " << childless_hash << endl;
+
       debug(debug_suffix.str());
     }
-  }
-  else {
-    // The chidless block have not been registered yet
+  } else { // The chidless block has not been registered yet
     debug_suffix.str("");
     debug_suffix << " RegisterNode : Adding new childless block : "  << childless_hash << " for node: " << idSender << endl;
     debug(debug_suffix.str());
+
     recover_branch.insert(pair<string, int> (childless_hash, idSender));
   }
 }
 
+/**
+ * Called by leader node during ProcessChildlessResponse(), to see if can start creating a merge block
+ * early before time ends. Condition is that all the unique nodes in the recover_branch have one response.
+ */
 void B4Mesh::CheckMergeBlockCreation(){
-  
   int ans = 0;
   bool findnode = false;
 
@@ -1437,6 +1540,7 @@ void B4Mesh::CheckMergeBlockCreation(){
       debug_suffix.str("");
       debug_suffix << " CheckMergeBlockCreation : Answer of node: "  << n_nodes.first << " not received yet" << endl;
       debug(debug_suffix.str());
+
       ans++;
     }
   }
@@ -1444,13 +1548,18 @@ void B4Mesh::CheckMergeBlockCreation(){
   if (ans == 0 && !createBlock){
     // Create Merge BLOCK
     mergeBlock = true;
+
     debug("A merge block can be created now.");
+
     createBlock = true;
     GenerateBlocks();
   }
-
 }
 
+/**
+ * Called by a node in response to a SendBranchRequest() by another node, asking for the entire branch.
+ * TODO: Clarify. Shouldn't the payload just contain a single hash? Why the function seems to account for multiple.
+ */
 void B4Mesh::SendBranch4Sync(const string& msg_payload, Ipv4Address destAddr){
   string deserie = msg_payload;
   string block_hash = "";
@@ -1461,7 +1570,7 @@ void B4Mesh::SendBranch4Sync(const string& msg_payload, Ipv4Address destAddr){
   deserie = deserie.substr(sizeof(group_branch_hdr_t), deserie.size());
 
   // Extracting the block hashes in payload and putting them in vector block_hash_v
-  while ( deserie.size() > 0){
+  while (deserie.size() > 0){
     block_hash = deserie.substr(0, 32);
     if(find(block_hash_v.begin(), block_hash_v.end(), block_hash) != block_hash_v.end()){
     } else {
@@ -1470,20 +1579,19 @@ void B4Mesh::SendBranch4Sync(const string& msg_payload, Ipv4Address destAddr){
     deserie = deserie.substr(32, deserie.size());
   }
 
-  /** for every block in block_hash_v
-   *  getting the groupId of each block and filling the vector gp_id_v
+  /** for every hash in block_hash_v
+   *  get the groupId of each block and filling the vector gp_id_v
    *  This vector has the GroupId of the blocks in the request.
    */
   for (auto &b_h : block_hash_v){
     gp_id = blockgraph.GetGroupId(b_h);
-    if (find(gp_id_v.begin(), gp_id_v.end(), gp_id) != gp_id_v.end()){
-      //GroupId already existent "
+    if (find(gp_id_v.begin(), gp_id_v.end(), gp_id) != gp_id_v.end()){ //GroupId already existent "
     } else {
       gp_id_v.push_back(gp_id);
     }
   }
 
-  // Sending blocks with the same groupId to node
+  // Sending blocks with the same groupId to node. Because these should correspond to the same branch.
   for (auto g_id : gp_id_v){
     vector<Block> blocks_group = blockgraph.GetBlocksFromGroup(g_id);
     for (auto b_grp : blocks_group){
@@ -1491,8 +1599,10 @@ void B4Mesh::SendBranch4Sync(const string& msg_payload, Ipv4Address destAddr){
       debug_suffix << " SendBranch4Sync: Sending block hash " << b_grp.GetHash() << " with groupId: " << g_id;
       debug_suffix << " to node " << destAddr << endl;
       debug(debug_suffix.str());
+
       ApplicationPacket packet(ApplicationPacket::BLOCK, b_grp.Serialize());
       SendPacket(packet, destAddr);
+
       // For trace purposes
       TraceBlockSend(GetIdFromIp(destAddr), Simulator::Now().GetSeconds(), stoi(b_grp.GetHash()));
     }
@@ -1500,28 +1610,30 @@ void B4Mesh::SendBranch4Sync(const string& msg_payload, Ipv4Address destAddr){
 }
 
 // ************** GENERATION DES BLOCKS *****************************
-bool B4Mesh::TestPendingTxs(){
-// Only leader execute this function
 
+/**
+ * Called by leader node to check if can create a block.
+ */
+bool B4Mesh::TestPendingTxs(){
   if ((int)Simulator::Now().GetSeconds() - lastBlock_creation_time > TIME_BTW_BLOCK){
     if ( SizeMempoolBytes()/1000 > MIN_SIZE_BLOCK){
       debug(" TestPendingTxs: Enough txs to create a block.");
       return true;
-    }
-    else {
+    } else {
       debug(" Not enough transactions to form a block");
       return false;
     }
-  }
-  else {
+  } else {
     debug(" TestPendingTxs: Not allowed to create a block so fast");
     return false;
   }
 }
 
-//Select the transactions with a small timestamp.
+/**
+ * Returns the transactions from mempool with smallest timestamp. 
+ * For block creation by leader.
+ */
 vector<Transaction> B4Mesh::SelectTransactions(){
-
   vector<Transaction> transactions;
 
   while((transactions.size()*TX_MEAN_SIZE)/1000 < MAX_SIZE_BLOCK){
@@ -1529,19 +1641,18 @@ vector<Transaction> B4Mesh::SelectTransactions(){
     for(auto &t : txn_mempool){
       if(find(transactions.begin(), transactions.end(), t.second) != transactions.end()){
         continue;
-      }
-      else {
+      } else {
         if (t.second.GetTimestamp() < min_ts.second){
           min_ts = make_pair(t.first, t.second.GetTimestamp());
         } else {
           continue;
         }
       }
-    }
-    if (min_ts.first != "0"){
-      debug_suffix.str("");
-      debug_suffix << "SelectTransactions : Getting tx: " << min_ts.first << " with time stamp: " << min_ts.second << endl;
-      debug(debug_suffix.str());
+    } if (min_ts.first != "0"){
+      // debug_suffix.str("");
+      // debug_suffix << "SelectTransactions : Getting tx: " << min_ts.first << " with time stamp: " << min_ts.second << endl;
+      // debug(debug_suffix.str());
+      
       transactions.push_back(txn_mempool[min_ts.first]);
     } else {
       break;
@@ -1550,25 +1661,33 @@ vector<Transaction> B4Mesh::SelectTransactions(){
   return transactions;
 }
 
+/**
+ * Returns true if there are missing_childless_hashes.
+ * Called by GenerateBlocks(): don't start a merge while one is already in progress.
+ * Called by GenerateRegularBlock(): to ensure that parents are chosen correctly. Don't include parents that are currently involved
+ * in branch recovery.
+ */
 bool B4Mesh::IsMergeInProcess(){
-
   debug(" IsMergeInProcess: List of missing childless: ");
+
   for (auto &mc : missing_childless_hashes){
     debug_suffix.str("");
     debug_suffix << " Childless: " << mc << endl;
     debug(debug_suffix.str());
   }
 
-  if (missing_childless_hashes.size() > 0){
-    // There is a merge synchronization in process
+  if (missing_childless_hashes.size() > 0){ // There is a merge synchronization in process
     return true;
   } else {
     return false;
   }
 }
 
+/**
+ * Generates a blank slate block, then turns it into either a regular or merge block by passing to respective functions.
+ * Note that a merge block can also be created to join 2 childess blocks even without an actual merge(topology change) taking place.
+ */
 void B4Mesh::GenerateBlocks(){
-
   debug(" GenerateBlock: Creating a Block ");
 
   Block block;
@@ -1576,9 +1695,9 @@ void B4Mesh::GenerateBlocks(){
   block.SetLeader(node->GetId());
   block.SetGroupId(groupId);
 
-  if (mergeBlock){
-      // If block is a merge block
+  if (mergeBlock){ // This block is supposed to be a merge block.
       debug(" GenerateBlock: Generating a Merge block due to merge");
+
       block = GenerateMergeBlock(block);
   } else {
     if (blockgraph.GetChildlessBlockList().size() > 1){
@@ -1617,24 +1736,27 @@ void B4Mesh::GenerateBlocks(){
   
 }
 
+/**
+ * Takes a block and turns it into a merge block.
+ * Transactions are TODO: Here
+ * Parents are: all the childless blocks of the blockgraph, and missing_childless_hashes?
+ */
 Block B4Mesh::GenerateMergeBlock(Block &block){
-
   debug(" GenerateMergeBlock: Creating a Merge Block ");
 
   vector<Transaction> transactions = vector<Transaction> ();
   vector<string> p_block = vector <string> ();
 
-  for (auto &parent : blockgraph.GetChildlessBlockList() ){
-    p_block.push_back(parent);
-  }
-
+  // Settle transactions
   for (auto hash : blockgraph.GetChildlessBlockList()){
     for (auto node : GetNodesFromOldGroup()){
       Transaction t;
       string payload = to_string(node.first) + " " + hash;
+
       debug_suffix.str("");
       debug_suffix << " GenerateMergeBlock: TX OLD: " << payload << endl;
       debug(debug_suffix.str());
+
       t.SetPayload(payload);
       t.SetTimestamp(Simulator::Now().GetSeconds());
       transactions.push_back(t);
@@ -1644,9 +1766,11 @@ Block B4Mesh::GenerateMergeBlock(Block &block){
   for (auto &node : recover_branch) {
     Transaction t;
     string payload = to_string(node.second) + " " + node.first;
+
     debug_suffix.str("");
     debug_suffix << " GenerateMergeBlock: TX RECOVER: " << payload << endl;
     debug(debug_suffix.str());
+
     t.SetPayload(payload);
     t.SetTimestamp(Simulator::Now().GetSeconds());
     transactions.push_back(t);
@@ -1654,8 +1778,12 @@ Block B4Mesh::GenerateMergeBlock(Block &block){
 
   block.SetTransactions(transactions);
 
-  // Adding the new parents
-  if(missing_childless_hashes.size() > 0){
+  // Settle parents
+  for (auto &parent : blockgraph.GetChildlessBlockList()){
+    p_block.push_back(parent);
+  }
+  
+  if (missing_childless_hashes.size() > 0){
     for (auto &pb : missing_childless_hashes){
       if(find(p_block.begin(), p_block.end(), pb) == p_block.end()){
         p_block.push_back(pb);
@@ -1664,13 +1792,16 @@ Block B4Mesh::GenerateMergeBlock(Block &block){
   }
 
   block.SetParents(p_block);
-  block.SetBlockType(1);  // new
+
+  block.SetBlockType(1);  // new -??
 
   mergeBlock = false;
-
   return block;
 }
 
+/**
+ * Takes a block and turns it into a regular block.
+ */
 Block B4Mesh::GenerateRegularBlock(Block &block){
   debug(" GenerateRegularBlock: Creating a Regular Block ");
 
@@ -1686,7 +1817,7 @@ Block B4Mesh::GenerateRegularBlock(Block &block){
           p_block.push_back(p);
         } else {
           debug_suffix.str("");
-          debug_suffix << " GenerateRegularBlock : The childless block: " << p << " is a block that comes from another branch and its branch is in revcover process";
+          debug_suffix << " GenerateRegularBlock : The childless block: " << p << " is a block that comes from another branch and its branch is in recover process";
           debug_suffix << " Not adding this childless block as parent... " << endl;
           debug(debug_suffix.str());
         }
@@ -1701,22 +1832,26 @@ Block B4Mesh::GenerateRegularBlock(Block &block){
   block.SetBlockType(0);  // new
 
   for (auto &t : transactions){
-       txn_mempool.erase(t.GetHash());
+    txn_mempool.erase(t.GetHash());
   }
-  
   return block;
 }
 
+/**
+ * Sends block to consensus module for dissemination to other nodes in group.
+ * Called by leader node, at the end of GenerateBlocks(). 
+ */
 void B4Mesh::SendBlockToConsensus(Block b){
   debug_suffix.str("");
   debug_suffix << " SendBlockToConsensus:   " << b.GetHash() << " to C4M protocol" << endl;
   debug(debug_suffix.str());
+  
   GetB4MeshOracle(node->GetId())->InsertEntry(b);
   // Trace for block propagation delai. Not exact because need to measure from consenus
+  
   for (auto &node : group){
     TraceBlockSend(node.first, Simulator::Now().GetSeconds(), stoi(b.GetHash()));
   }
-
 }
 
 
@@ -1729,29 +1864,36 @@ void B4Mesh::CourseChange(string context, Ptr<const MobilityModel> mobility){
 }
 
 // **************** CONSENSUS INTERFACES METHODS *****************
-void B4Mesh::RecvBlock(void * b4, Block b) {
 
+/**
+ * Invoked by consensus module after it has received and committed a block.
+ * Then calls GetBlock() to treat the block and so on.
+ */
+void B4Mesh::RecvBlock(void * b4, Block b) {
   // debug_suffix.str("");
   // debug_suffix << "Received a block from consensus module and RecvBlock with hash" << b.GetHash().data() <<endl;
   // debug(debug_suffix.str());
-
-    // cout << " Node: " << node->GetId() << "Received a block from consensus module and RecvBlock with hash" << b.GetHash().data() <<endl;
+  // cout << " Node: " << node->GetId() << "Received a block from consensus module and RecvBlock with hash" << b.GetHash().data() <<endl;
 
   Ptr<B4Mesh> ptr_b = (B4Mesh *) b4;
   ptr_b->GetBlock(b);
-  
 }
 
+/**
+ * Schedule BlockTreatment() on this block.
+ */
 void B4Mesh::GetBlock(Block b) {
-
     debug_suffix.str("");
     debug_suffix << "Received a new block : " << b << " from "  << " with hash " << b.GetHash().data() << endl;
     debug(debug_suffix.str());
+
     // For traces purposes
     TraceBlockRcv(Simulator::Now().GetSeconds(), stoi(b.GetHash()));
+
     // Processing delay of the block. It is calculated base on the packet size.
     float process_time = GetExecTimeBKtreatment(blockgraph.GetBlocksCount());
     p_b_t_t += process_time;
+
     Simulator::Schedule(MilliSeconds(process_time),
           &B4Mesh::BlockTreatment, this, b);
 }
@@ -1811,7 +1953,6 @@ void B4Mesh::TxsPerformances (){
 
 
 void B4Mesh::BlockCreationRate(string hashBlock, string b_groupId, int txCount, double blockTime){
-
   auto block_info = pair<pair<int, int>, pair<int, double>> ();
   block_info = make_pair(make_pair(stoi(hashBlock), stoi(b_groupId.data())), make_pair(txCount, blockTime));
   traces->ReceivedBlockInfo(block_info);
@@ -1823,7 +1964,6 @@ void B4Mesh::BlockCreationRate(string hashBlock, string b_groupId, int txCount, 
 }
 
 void B4Mesh::TraceBlockSend(int nodeId, double timestamp, int hashBlock){
-
   map<int, pair<double, double>>::iterator it = GetB4MeshOf(nodeId)->time_SendRcv_block.find(hashBlock); 
 
   if (it != GetB4MeshOf(nodeId)->time_SendRcv_block.end() ){
@@ -1833,11 +1973,9 @@ void B4Mesh::TraceBlockSend(int nodeId, double timestamp, int hashBlock){
   }
 
  // TRACE << "SEND_BLOCK" << " " << hashBlock << " " << "TO" << " " << nodeId << endl;
-
 }
 
 void B4Mesh::TraceBlockRcv(double timestamp, int hashBlock){
-
   map<int, pair<double, double>>::iterator it = time_SendRcv_block.find(hashBlock);
 
   if (it != time_SendRcv_block.end()){
@@ -1845,11 +1983,9 @@ void B4Mesh::TraceBlockRcv(double timestamp, int hashBlock){
   }
 
 //  TRACE << "RECV_BLOCK" << " " << hashBlock << endl;
-
 }
 
 void B4Mesh::TraceTxsSend(int nodeId, int hashTx, double timestamp){
-
   map<int, pair<double, double>>::iterator it = GetB4MeshOf(nodeId)->time_SendRcv_txs.find(hashTx); 
 
   if (it != GetB4MeshOf(nodeId)->time_SendRcv_txs.end() ){
@@ -1857,27 +1993,21 @@ void B4Mesh::TraceTxsSend(int nodeId, int hashTx, double timestamp){
   } else {
     GetB4MeshOf(nodeId)->time_SendRcv_txs[hashTx] = make_pair(timestamp,-1);
   }
-
 }
 
 void B4Mesh::TraceTxsRcv(int hashTx, double timestamp){
-
    map<int, pair<double, double>>::iterator it = time_SendRcv_txs.find(hashTx);
 
   if (it != time_SendRcv_txs.end()){
     it->second.second = timestamp;
   }
-
 }
 
 void B4Mesh::TraceTxLatency(Transaction t, string b_hash){
-
   TxsLatency.insert(pair<string, pair<string, double>> (b_hash.data(), make_pair(t.GetHash().data(), Simulator::Now().GetSeconds() - t.GetTimestamp())));
-
 }
 
 int B4Mesh::SizeMempoolBytes (){
-
   int ret = 0;
   for (auto &t : txn_mempool){
     ret += t.second.GetSize();
@@ -2164,7 +2294,6 @@ void B4Mesh::PerformancesB4Mesh(){
     txCount += GetB4MeshOf(i)->blockgraph.GetTxsCount();
     txSize += GetB4MeshOf(i)->blockgraph.GetTxsByteSize();
     totalTxs += GetB4MeshOf(i)->GetNumTxsGen();
-
   }
 
   meanTxPerB = meanTxPerB / n;
@@ -2175,10 +2304,8 @@ void B4Mesh::PerformancesB4Mesh(){
 
 
 void B4Mesh::debug(string suffix){
- 
   std::cout << Simulator::Now().GetSeconds() << "s: B4Mesh : Node " << node->GetId() <<
       " : " << suffix << endl;
   debug_suffix.str("");
  
 }
- 

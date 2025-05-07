@@ -47,7 +47,7 @@ void B4MeshOracle::SetUp(Ptr<Node> node, vector<Ipv4Address> peers){
 	majority = 0;
 
 	heartbeat_freq = 1; // In seconds
-	election_timeout_parameters = make_pair(4000, 6000);
+	election_timeout_parameters = make_pair(8000, 10000); //was 4000, 6000.
 	election_timeout_event = EventId();
 
 	// Initialize trace variables
@@ -311,6 +311,7 @@ void B4MeshOracle::ResetElectionTimeout(float factor){
 // Become a candidate and vote for self. 
 // Request for votes.
 void B4MeshOracle::TriggerElectionTimeout(){
+	debug("Election timeout triggered. Becoming candidate and voting for self.");
 	if (!running) return;
 	SetCurrentLeader(-1);
 	ResetElectionTimeout();
@@ -753,7 +754,6 @@ void B4MeshOracle::SendHeartbeats(){
 // Called by followers when it receives AppendEntry from leader.
 // Settle its own log replication.
 B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string data_payload) {
-	debug("Got to here1");
 	ResetElectionTimeout();
 	//traces->ResetStartElection();
 	append_entries_ack_t ret;
@@ -766,8 +766,6 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 	
 	append_entries_hdr_t entries = *((append_entries_hdr_t*) data_payload.data());
 	string log_entries = data_payload.substr(sizeof(append_entries_hdr_t));
-
-
 
 	if (GetCurrentLeader() == -1) {
 		SetCurrentLeader(entries.leader_id);
@@ -794,7 +792,6 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 		ret.success = false;
 		return ret;
 	}
-	debug("Got to here2");
 	// Destitution of a leader or a candidate if another leader is detected (maybe useless)
 	// if (current_state == LEADER || current_state == CANDIDATE){
 	// 	debug_suffix << "Revoked by Node " << entries.leader_id;
@@ -838,8 +835,6 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 		// debug(debug_suffix.str());
 	}
 		
-		debug("Got to here3");
-
 		// debug_suffix << "GetEntry(entries.prev_log_index).first is " << GetEntry(entries.prev_log_index).first;
 		// debug(debug_suffix.str());
 
@@ -867,7 +862,6 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
     	ret.success = false;
     	return ret;
 	}
-	debug("Got to here4");
 
 	// Process the entries
 	debug_suffix << "Process entry of size " << data_payload.size() << "B";
@@ -884,7 +878,6 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 				log.push_back(make_pair(current_term, hash));
 			}
 		}
-
 
 		if (entries.msg_type == APPEND_ENTRY){
 			Block b(log_entries);
@@ -941,7 +934,6 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 	} else {
 		debug("Received an heartbeat");
 	}
-	debug("Got to here5");
 
 	// Follower updates local commit index
 	// The ACTUAL committing logic should be here too?? 
@@ -968,7 +960,6 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 			}
 		}
 	}
-	debug("Got to here6");
 
 	// Actual committing logic here
 	for (int idx = prev_commit_index; idx < commit_index; ++idx) {
@@ -985,16 +976,11 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 
 	}
 	
-
-	debug("Got to here7");
-
-
 	ret.commit_index = commit_index;
 	ret.entry_index = LastLogIndex();
 	ret.success = true;
 
 	return ret;
-
 }
 
 // Called by leader in response to followers' acknowledgements to AppendEntries.
@@ -1039,9 +1025,9 @@ void B4MeshOracle::ProcessEntriesAck(append_entries_ack_t ack_entries){
 
 	for (int commit_candidate=commit_index+1; commit_candidate<=LastLogIndex(); ++commit_candidate){
 		int count = 0;
-		for (size_t i = 0; i < match_indexes.size(); ++i) {
-   			std::cout << "match_indexes[" << i << "] = " << match_indexes[i] << std::endl;
-		}
+		// for (size_t i = 0; i < match_indexes.size(); ++i) {
+   		// 	std::cout << "match_indexes[" << i << "] = " << match_indexes[i] << std::endl;
+		// }
 		for (auto n : current_group){
 			int commit = match_indexes[n.first];
 			if (commit >= commit_candidate)
@@ -1403,7 +1389,6 @@ void B4MeshOracle::debug(string suffix){
 	cout << Simulator::Now().GetSeconds() << "s: B4MeshOracle : Node " << node->GetId() <<
       " : " << suffix << endl;
   	debug_suffix.str("");
-
 }
 
 

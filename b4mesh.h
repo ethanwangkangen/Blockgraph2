@@ -357,10 +357,10 @@ class B4Mesh : public Application{
     /**
      * Leader request for childless blocks. 
      */
-    void Ask4ChildlessBlocks();
+    void Ask4ChildlessHashes();
 
     /**
-     * Ask4ChildlessBlocks() sets a timer for 6 seconds, once that's done it assumes
+     * Ask4ChildlessHashes() sets a timer for 6 seconds, once that's done it assumes
      * the requests have all been responded to. Then schedules call to this function
      * to allow node to create blocks and create a merge block, then calls the GenerateBlocks()
      * function.
@@ -574,7 +574,8 @@ class B4Mesh : public Application{
     bool running; // True if application is running.
     bool mergeBlock; // True if node is currently creating a merge block.
     bool createBlock; // True if node is allowed to create a block now (merge or regular).
-    bool startMerge; // True if merge process has started and not ended.
+    bool startMerge; // True if merge process has started and not ended. TRUE IF NODE IS IN STABLE TOPOLOGY, allows
+    //                  StartMerge() to proceed. 
 
     int lastChange;  // Last change nature. MERGE or SPLIT
     int lastBlock_creation_time;  // Time of last block creation.
