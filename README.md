@@ -31,6 +31,10 @@ Although we tried to make most of the serialization/deserialization process in t
 **NB** : Before running this project make sure to have `ns3` version 3.44 installed. <br />
 To install **ns3** follow this tutorial -> [https://www.nsnam.org/docs/tutorial/html/getting-started.html] 
 
+### **Set the project**
+Extract files into b4mesh folder.
+Put b4mesh folder into ../ns-allinone-3.44/ns-3.44/scratch/
+
 ### **Build the project**
 
 To build the project with CMake:
@@ -40,7 +44,7 @@ Start from top level ns3.44 folder.
 Configure the build
 > cmake -B build
 
-Or from within the b4mesh folder,
+OR from within the b4mesh folder,
 > ./build.sh
 
 ### **Compile and execute b4mesh simulation**
