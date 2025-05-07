@@ -2,7 +2,9 @@
 
 This repository is based on the Blockgraph/Consensus4Mesh(C4M) protocol designed by David Mordova. [https://gitlab.lip6.fr/cordova/b4mesh] and [https://gitlab.lip6.fr/cordova/c4m].
 
-My contribution has been simply been to integrate the c4m consensus algorithm into the blockgraph protocol - ie coupling the 2 aspects of the protocol into a whole to test feasibility and performance.
+My contribution has been been to integrate the c4m consensus algorithm into the blockgraph protocol - ie coupling the 2 aspects of the protocol into a whole to test feasibility and performance.
+
+Some of the code has been reformatted. Additional documentation has been added for some files.
 
 All credit goes to the original author, whose paper can be found here https://theses.hal.science/tel-03922843/document
 
