@@ -18,7 +18,7 @@ class B4MeshHelper{
     B4MeshHelper(B4MTraces* t);
     ~B4MeshHelper();
 
-    ApplicationContainer Install(NodeContainer c, float txMean);
+    ApplicationContainer Install(NodeContainer c, float timeBetweenTxn);
 
   private:
     ObjectFactory factory;

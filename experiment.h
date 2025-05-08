@@ -26,7 +26,7 @@ class Experiment{
     enum{cPosition=1, rWalk2, cVelosity, grouprWalk};
 
     // Constructors and destructor
-    Experiment(int nNodes, int sTime, double txGen, 
+    Experiment(int nNodes, int sTime, double timeBetweenTxn, 
                int mMobility, int mLoss, int nScen, double speed);
     ~Experiment();
 
@@ -106,7 +106,7 @@ class Experiment{
     int nNodes;
     int nGroup;
     int sTime;
-    float txGen;
+    float timeBetweenTxn;
     int mMobility;
     int mLoss;
     int nScen;

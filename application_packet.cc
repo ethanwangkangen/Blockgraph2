@@ -21,7 +21,7 @@ ApplicationPacket::ApplicationPacket(char service, int payload_size, const uint8
   size = CalculateSize();
 }
 
-ApplicationPacket::ApplicationPacket(ApplicationPacket &p){
+ApplicationPacket::ApplicationPacket(const ApplicationPacket &p){
   service = p.service;
   payload = p.payload;
   size = p.size;
