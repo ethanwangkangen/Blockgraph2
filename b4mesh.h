@@ -605,6 +605,8 @@ class B4Mesh : public Application{
 
     // Mapping of childless hashes, and sender address (IP address of block to retrieve it from)
     // Also includes parent blocks known to be missing, as their child is present in the waiting list.
+    // If hash is for missing parent, id will be that of the leader of the child block that is missing its parents.
+    // If hash is for missing childless, id will be that of the node that send this childless hash(?) 
     multimap<string, Ipv4Address> missing_block_list; 
 
     // Blocks that cannot be added to Blockgraph yet as they are waiting for ancestors.

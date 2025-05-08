@@ -22,7 +22,7 @@ class ApplicationPacket{
     ApplicationPacket();
     ApplicationPacket(char service, string payload);
     ApplicationPacket(char service, int size, const uint8_t* payload);
-    ApplicationPacket(ApplicationPacket &p);
+    ApplicationPacket(const ApplicationPacket &p);
     ApplicationPacket(string &serie);
     ~ApplicationPacket();
 

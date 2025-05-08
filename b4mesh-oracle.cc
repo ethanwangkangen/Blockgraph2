@@ -679,17 +679,17 @@ void B4MeshOracle::SendHeartbeats(){
 
 			if (next_index <= LastLogIndex() && hash!=""){ // If there is something to send [not just heartbeat], (either a block or config change entry)
 
-				debug_suffix << "Next index[n.first] is " << next_indexes[n.first];
-				debug(debug_suffix.str());
+				// debug_suffix << "Next index[n.first] is " << next_indexes[n.first];
+				// debug(debug_suffix.str());
 
-				debug_suffix << "LastCommitConfIndex()+1 is " << LastCommitConfIndex()+1;
-				debug(debug_suffix.str());
+				// debug_suffix << "LastCommitConfIndex()+1 is " << LastCommitConfIndex()+1;
+				// debug(debug_suffix.str());
 		
-				debug_suffix << "next_index is " << next_index;
-				debug(debug_suffix.str());
+				// debug_suffix << "next_index is " << next_index;
+				// debug(debug_suffix.str());
 
-				debug_suffix << "log.size() is " << log.size();
-				debug(debug_suffix.str());
+				// debug_suffix << "log.size() is " << log.size();
+				// debug(debug_suffix.str());
 
 				if (blockpool.count(hash) > 0){ // The entry is a block to send
 					entries.msg_type = APPEND_ENTRY;
@@ -753,7 +753,6 @@ void B4MeshOracle::SendHeartbeats(){
 // Called by followers when it receives AppendEntry from leader.
 // Settle its own log replication.
 B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string data_payload) {
-	debug("Got to here1");
 	ResetElectionTimeout();
 	//traces->ResetStartElection();
 	append_entries_ack_t ret;
@@ -794,7 +793,6 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 		ret.success = false;
 		return ret;
 	}
-	debug("Got to here2");
 	// Destitution of a leader or a candidate if another leader is detected (maybe useless)
 	// if (current_state == LEADER || current_state == CANDIDATE){
 	// 	debug_suffix << "Revoked by Node " << entries.leader_id;
@@ -838,7 +836,6 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 		// debug(debug_suffix.str());
 	}
 		
-		debug("Got to here3");
 
 		// debug_suffix << "GetEntry(entries.prev_log_index).first is " << GetEntry(entries.prev_log_index).first;
 		// debug(debug_suffix.str());
@@ -867,7 +864,6 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
     	ret.success = false;
     	return ret;
 	}
-	debug("Got to here4");
 
 	// Process the entries
 	debug_suffix << "Process entry of size " << data_payload.size() << "B";
@@ -941,7 +937,6 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 	} else {
 		debug("Received an heartbeat");
 	}
-	debug("Got to here5");
 
 	// Follower updates local commit index
 	// The ACTUAL committing logic should be here too?? 
@@ -968,7 +963,6 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 			}
 		}
 	}
-	debug("Got to here6");
 
 	// Actual committing logic here
 	for (int idx = prev_commit_index; idx < commit_index; ++idx) {
@@ -984,9 +978,6 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 		}
 
 	}
-	
-
-	debug("Got to here7");
 
 
 	ret.commit_index = commit_index;
