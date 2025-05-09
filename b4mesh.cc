@@ -729,6 +729,10 @@ void B4Mesh::StartSyncProcedure(vector<Transaction> transactions){
     randNum->SetAttribute("Max", DoubleValue(1));
     Simulator::Schedule(Seconds(randNum->GetValue()), &B4Mesh::SendBranchRequest, this);
   }
+  //Testing this for edge case
+  //if (!createBlock){
+  //  createBlock=true;
+  //}
 }
 
 /**
@@ -1066,11 +1070,7 @@ void B4Mesh::UpdatingMempool (vector<Transaction> transactions, string b_hash){
   for (auto &t : transactions){
     if (txn_mempool.count(t.GetHash()) > 0){
       // debug_suffix.str("");
-<<<<<<< HEAD
       // debug_suffix << " UpdatingMempool: Transaction " << t.GetHash().data() << " found" << endl;
-=======
-      // debug_suffix << " UpdatingMempool: Transaction " << t.GetHash().data() << " founded" << endl;
->>>>>>> main
       // debug(debug_suffix.str());
 
       // Traces purpose 
@@ -1380,6 +1380,8 @@ void B4Mesh::SendChildlessHashes(Ipv4Address destAddr){
   } else {
     debug(" SendChildlessHashes: No childless block found!");
   }
+  //testing this for edge case:
+  //createBlock=false; 
 }
 
 /**
@@ -1596,15 +1598,11 @@ void B4Mesh::SendBranch4Sync(const string& msg_payload, Ipv4Address destAddr){
     }
   }
 
-<<<<<<< HEAD
   // Sending blocks with the same groupId to node. Because these should correspond to the same branch.
-=======
   // Added small delay
-  float delayStep = 500; // milliseconds
+  float delayStep = 50; // milliseconds
   float currentDelay = 0.0;
 
-  // Sending blocks with the same groupId to node
->>>>>>> main
   for (auto g_id : gp_id_v){
     vector<Block> blocks_group = blockgraph.GetBlocksFromGroup(g_id);
     for (auto b_grp : blocks_group){
@@ -1614,15 +1612,10 @@ void B4Mesh::SendBranch4Sync(const string& msg_payload, Ipv4Address destAddr){
       debug(debug_suffix.str());
 
       ApplicationPacket packet(ApplicationPacket::BLOCK, b_grp.Serialize());
-<<<<<<< HEAD
-      SendPacket(packet, destAddr);
-=======
-
 
       Simulator::Schedule(MilliSeconds(currentDelay),
         &B4Mesh::SendPacket, this, packet, destAddr, false);
       currentDelay = currentDelay + delayStep;
->>>>>>> main
 
       // For trace purposes
       TraceBlockSend(GetIdFromIp(destAddr), Simulator::Now().GetSeconds(), stoi(b_grp.GetHash()));
@@ -1669,20 +1662,12 @@ vector<Transaction> B4Mesh::SelectTransactions(){
           continue;
         }
       }
-<<<<<<< HEAD
-    } if (min_ts.first != "0"){
-      // debug_suffix.str("");
-      // debug_suffix << "SelectTransactions : Getting tx: " << min_ts.first << " with time stamp: " << min_ts.second << endl;
-      // debug(debug_suffix.str());
-      
-=======
     }
     if (min_ts.first != "0"){
       // debug_suffix.str("");
       // debug_suffix << "SelectTransactions : Getting tx: " << min_ts.first << " with time stamp: " << min_ts.second << endl;
       // debug(debug_suffix.str());
 
->>>>>>> main
       transactions.push_back(txn_mempool[min_ts.first]);
     } else {
       break;
@@ -2371,7 +2356,3 @@ void B4Mesh::debug(string suffix){
   debug_suffix.str("");
  
 }
-<<<<<<< HEAD
-=======
- 
->>>>>>> main

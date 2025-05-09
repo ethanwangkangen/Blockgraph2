@@ -835,10 +835,7 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 		// debug(debug_suffix.str());
 	}
 		
-<<<<<<< HEAD
-=======
 
->>>>>>> main
 		// debug_suffix << "GetEntry(entries.prev_log_index).first is " << GetEntry(entries.prev_log_index).first;
 		// debug(debug_suffix.str());
 
@@ -979,12 +976,7 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 		}
 
 	}
-<<<<<<< HEAD
 	
-=======
-
-
->>>>>>> main
 	ret.commit_index = commit_index;
 	ret.entry_index = LastLogIndex();
 	ret.success = true;

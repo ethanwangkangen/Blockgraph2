@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
 // Default values
   int nNodes = 10;  // Number of nodes
   int sTime = 600;  // Time of simulation
-  double txGen = 0.5;  // Mean time in seconds between the generation of two txs
+  double txGen = 2.5;  // Mean time in seconds between the generation of two txs
   int mMobility = 1;  // Mobility model 
   int mLoss = 2;  // Loss propagation model 
   int nScen = 1;    // Number of scenario
@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
   cmd.AddValue("speed", "The velocity of the nodes in m/s", speed);
   cmd.Parse (argc, argv);
 
-  Experiment e(nNodes, sTime, 1/txGen, mMobility, mLoss,  nScen, speed);
+  Experiment e(nNodes, sTime, txGen, mMobility, mLoss,  nScen, speed);
   e.Run();
 
   return 0;

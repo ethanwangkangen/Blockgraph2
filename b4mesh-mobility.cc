@@ -629,11 +629,11 @@ void B4MeshMobility::UpdateFollowersScn1(Vector leader_pos){
     Ptr<Node> follower = ns3::NodeList::GetNode(i);
     Ptr<MobilityModel> mob = follower->GetObject<MobilityModel>();
     Vector current_pos = leader_pos;
-    current_pos.x += 2;
+    current_pos.x;
     Vector new_position;
     new_position.z = current_pos.z;
-    new_position.x = current_pos.x + i;
-    new_position.y = current_pos.y + i;
+    new_position.x = current_pos.x;
+    new_position.y = current_pos.y;
     debug_suffix.str("");
     debug_suffix << " Updating follower's " << i << " possition. New pos in X is : " << new_position.x << " New pos in Y is :" << new_position.y << endl;
     debug(debug_suffix.str());
@@ -648,11 +648,11 @@ void B4MeshMobility::UpdateFollowersScn2(Vector leader_pos){
       Ptr<Node> follower = ns3::NodeList::GetNode(i);
       Ptr<MobilityModel> mob = follower->GetObject<MobilityModel>();
       Vector current_pos = leader_pos;
-      current_pos.x += 2;
+      //current_pos.x += 2;
       Vector new_position;
       new_position.z = current_pos.z;
-      new_position.x = current_pos.x + i;
-      new_position.y = current_pos.y + i;
+      new_position.x = current_pos.x;
+      new_position.y = current_pos.y;
       debug_suffix.str("");
       debug_suffix << " Updating follower's " << i << " possition. New pos in X is : " << new_position.x << " New pos in Y is :" << new_position.y << endl;
       debug(debug_suffix.str());
@@ -664,11 +664,11 @@ void B4MeshMobility::UpdateFollowersScn2(Vector leader_pos){
       Ptr<Node> follower = ns3::NodeList::GetNode(i);
       Ptr<MobilityModel> mob = follower->GetObject<MobilityModel>();
       Vector current_pos = leader_pos;
-      current_pos.x += 2;
+      //current_pos.x += 2;
       Vector new_position;
       new_position.z = current_pos.z;
-      new_position.x = current_pos.x + i;
-      new_position.y = current_pos.y + i;
+      new_position.x = current_pos.x;
+      new_position.y = current_pos.y;
       debug_suffix.str("");
       debug_suffix << " Updating follower's " << i << " possition. New pos in X is : " << new_position.x << " New pos in Y is :" << new_position.y << endl;
       debug(debug_suffix.str());
@@ -684,7 +684,7 @@ void B4MeshMobility::UpdateFollowersScn3(Vector leader_pos){
       Ptr<Node> follower = ns3::NodeList::GetNode(i);
       Ptr<MobilityModel> mob = follower->GetObject<MobilityModel>();
       Vector current_pos = leader_pos;
-      current_pos.x += 2;
+      //current_pos.x += 2;
       Vector new_position;
       new_position.z = current_pos.z;
       new_position.x = current_pos.x; // Used to add + i 
@@ -700,7 +700,7 @@ void B4MeshMobility::UpdateFollowersScn3(Vector leader_pos){
       Ptr<Node> follower = ns3::NodeList::GetNode(i);
       Ptr<MobilityModel> mob = follower->GetObject<MobilityModel>();
       Vector current_pos = leader_pos;
-      current_pos.x += 2;
+      //current_pos.x += 2;
       Vector new_position;
       new_position.z = current_pos.z;
       new_position.x = current_pos.x; // Used to add + i 
@@ -716,7 +716,7 @@ void B4MeshMobility::UpdateFollowersScn3(Vector leader_pos){
       Ptr<Node> follower = ns3::NodeList::GetNode(i);
       Ptr<MobilityModel> mob = follower->GetObject<MobilityModel>();
       Vector current_pos = leader_pos;
-      current_pos.x += 2;
+      //current_pos.x += 2;
       Vector new_position;
       new_position.z = current_pos.z;
       new_position.x = current_pos.x; // Used to add + i 

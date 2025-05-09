@@ -7,7 +7,7 @@
 #define TX_MEAN_SIZE 450
 
 // Minimum time to propagate a block before creating a new one
-#define TIME_BTW_BLOCK 10
+#define TIME_BTW_BLOCK 15
 
 // Number of transactions allowed in a block
 #define MAX_SIZE_BLOCK 54  // In KB
@@ -34,11 +34,7 @@
 #define RETRANSMISSION_TIMER 60
 
 // b4mesh-mobility
-<<<<<<< HEAD
-#define TOPOLOGY_TOLERANCE_TIME 15 //was 3
-=======
-#define TOPOLOGY_TOLERANCE_TIME 5 //was 3
->>>>>>> main
+#define TOPOLOGY_TOLERANCE_TIME 10 //was 3
 
 // Block creation delay
 // Block treatment delay
