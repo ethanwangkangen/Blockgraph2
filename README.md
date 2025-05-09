@@ -2,7 +2,9 @@
 
 This repository is based on the Blockgraph/Consensus4Mesh(C4M) protocol designed by David Mordova. [https://gitlab.lip6.fr/cordova/b4mesh] and [https://gitlab.lip6.fr/cordova/c4m].
 
-My contribution has been simply been to integrate the c4m consensus algorithm into the blockgraph protocol - ie coupling the 2 aspects of the protocol into a whole to test feasibility and performance.
+My contribution has been been to integrate the c4m consensus algorithm into the blockgraph protocol - ie coupling the 2 aspects of the protocol into a whole to test feasibility and performance.
+
+Some of the code has been reformatted. Additional documentation has been added for some files.
 
 All credit goes to the original author, whose paper can be found here https://theses.hal.science/tel-03922843/document
 
@@ -29,6 +31,10 @@ Although we tried to make most of the serialization/deserialization process in t
 **NB** : Before running this project make sure to have `ns3` version 3.44 installed. <br />
 To install **ns3** follow this tutorial -> [https://www.nsnam.org/docs/tutorial/html/getting-started.html] 
 
+### **Set the project**
+Extract files into b4mesh folder.
+Put b4mesh folder into ../ns-allinone-3.44/ns-3.44/scratch/
+
 ### **Build the project**
 
 To build the project with CMake:
@@ -38,7 +44,7 @@ Start from top level ns3.44 folder.
 Configure the build
 > cmake -B build
 
-Or from within the b4mesh folder,
+OR from within the b4mesh folder,
 > ./build.sh
 
 ### **Compile and execute b4mesh simulation**

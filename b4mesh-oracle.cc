@@ -680,17 +680,17 @@ void B4MeshOracle::SendHeartbeats(){
 
 			if (next_index <= LastLogIndex() && hash!=""){ // If there is something to send [not just heartbeat], (either a block or config change entry)
 
-				debug_suffix << "Next index[n.first] is " << next_indexes[n.first];
-				debug(debug_suffix.str());
+				// debug_suffix << "Next index[n.first] is " << next_indexes[n.first];
+				// debug(debug_suffix.str());
 
-				debug_suffix << "LastCommitConfIndex()+1 is " << LastCommitConfIndex()+1;
-				debug(debug_suffix.str());
+				// debug_suffix << "LastCommitConfIndex()+1 is " << LastCommitConfIndex()+1;
+				// debug(debug_suffix.str());
 		
-				debug_suffix << "next_index is " << next_index;
-				debug(debug_suffix.str());
+				// debug_suffix << "next_index is " << next_index;
+				// debug(debug_suffix.str());
 
-				debug_suffix << "log.size() is " << log.size();
-				debug(debug_suffix.str());
+				// debug_suffix << "log.size() is " << log.size();
+				// debug(debug_suffix.str());
 
 				if (blockpool.count(hash) > 0){ // The entry is a block to send
 					entries.msg_type = APPEND_ENTRY;
@@ -835,6 +835,10 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 		// debug(debug_suffix.str());
 	}
 		
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
 		// debug_suffix << "GetEntry(entries.prev_log_index).first is " << GetEntry(entries.prev_log_index).first;
 		// debug(debug_suffix.str());
 
@@ -975,7 +979,12 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 		}
 
 	}
+<<<<<<< HEAD
 	
+=======
+
+
+>>>>>>> main
 	ret.commit_index = commit_index;
 	ret.entry_index = LastLogIndex();
 	ret.success = true;

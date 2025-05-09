@@ -351,11 +351,11 @@ void B4Mesh::ReceivePacket(Ptr<Socket> socket){
           }
           /* ----------- GROUPBRANCH_REQ TREATMENT ------------*/
           else if (message_type == GROUPBRANCH_REQ){
-          debug_suffix.str("");
-          debug_suffix << "Received Packet : GROUPBRANCH_REQ from: " <<  GetIdFromIp(ip) << endl;
-          debug(debug_suffix.str());
+            debug_suffix.str("");
+            debug_suffix << "Received Packet : GROUPBRANCH_REQ from: " <<  GetIdFromIp(ip) << endl;
+            debug(debug_suffix.str());
 
-          SendBranch4Sync(p.GetPayload(), ip);
+            SendBranch4Sync(p.GetPayload(), ip);
           }
           else {
             debug(" Packet CHANGE_TOPO type unsupported");
@@ -742,8 +742,9 @@ void B4Mesh::SendBranchRequest(){
   branch_req.msg_type = GROUPBRANCH_REQ;
   string serie_branch_b_h = "";
 
+  int request_count = 0;
   for (auto &cb : missing_childless_hashes){ // For each of the childless hash,
-    int request_count = 0; // Counter for number of requests sent
+    // int request_count = 0; // Counter for number of requests sent
     // This was originally placed outside the loop, but I feel that logically the limit should be set for each 
     // childless hash (ie each branch), and not all. If not what if one branch uses up the entire limit?
 
@@ -1065,7 +1066,11 @@ void B4Mesh::UpdatingMempool (vector<Transaction> transactions, string b_hash){
   for (auto &t : transactions){
     if (txn_mempool.count(t.GetHash()) > 0){
       // debug_suffix.str("");
+<<<<<<< HEAD
       // debug_suffix << " UpdatingMempool: Transaction " << t.GetHash().data() << " found" << endl;
+=======
+      // debug_suffix << " UpdatingMempool: Transaction " << t.GetHash().data() << " founded" << endl;
+>>>>>>> main
       // debug(debug_suffix.str());
 
       // Traces purpose 
@@ -1591,17 +1596,33 @@ void B4Mesh::SendBranch4Sync(const string& msg_payload, Ipv4Address destAddr){
     }
   }
 
+<<<<<<< HEAD
   // Sending blocks with the same groupId to node. Because these should correspond to the same branch.
+=======
+  // Added small delay
+  float delayStep = 500; // milliseconds
+  float currentDelay = 0.0;
+
+  // Sending blocks with the same groupId to node
+>>>>>>> main
   for (auto g_id : gp_id_v){
     vector<Block> blocks_group = blockgraph.GetBlocksFromGroup(g_id);
     for (auto b_grp : blocks_group){
       debug_suffix.str("");
-      debug_suffix << " SendBranch4Sync: Sending block hash " << b_grp.GetHash() << " with groupId: " << g_id;
+      debug_suffix << " SendBranch4Sync: Sending block with hash " << b_grp.GetHash() << " with groupId: " << g_id;
       debug_suffix << " to node " << destAddr << endl;
       debug(debug_suffix.str());
 
       ApplicationPacket packet(ApplicationPacket::BLOCK, b_grp.Serialize());
+<<<<<<< HEAD
       SendPacket(packet, destAddr);
+=======
+
+
+      Simulator::Schedule(MilliSeconds(currentDelay),
+        &B4Mesh::SendPacket, this, packet, destAddr, false);
+      currentDelay = currentDelay + delayStep;
+>>>>>>> main
 
       // For trace purposes
       TraceBlockSend(GetIdFromIp(destAddr), Simulator::Now().GetSeconds(), stoi(b_grp.GetHash()));
@@ -1648,11 +1669,20 @@ vector<Transaction> B4Mesh::SelectTransactions(){
           continue;
         }
       }
+<<<<<<< HEAD
     } if (min_ts.first != "0"){
       // debug_suffix.str("");
       // debug_suffix << "SelectTransactions : Getting tx: " << min_ts.first << " with time stamp: " << min_ts.second << endl;
       // debug(debug_suffix.str());
       
+=======
+    }
+    if (min_ts.first != "0"){
+      // debug_suffix.str("");
+      // debug_suffix << "SelectTransactions : Getting tx: " << min_ts.first << " with time stamp: " << min_ts.second << endl;
+      // debug(debug_suffix.str());
+
+>>>>>>> main
       transactions.push_back(txn_mempool[min_ts.first]);
     } else {
       break;
@@ -2209,7 +2239,39 @@ void B4Mesh::GenerateResults(){
   for (auto &it : blockgraph_file){
     output_file6 << it.first << " " << it.second.first << " " << it.second.second << endl;
   }
+
+  // New: list blocks in waiting list
+
+  // vector<string> parents_of_block = b.GetParents();
+  // pair<int,pair<int,int>> create_blockgraph = pair<int,pair<int,int>> ();
+
+  // for (auto &p : parents_of_block){
+  //   if (p == "01111111111111111111111111111111"){
+  //     create_blockgraph = make_pair(0,
+  //                                 make_pair(0,stoi(b.GetHash())));
+  //     blockgraph_file.push_back(create_blockgraph);
+  //   } else {
+  //     create_blockgraph = make_pair(stoi(b.GetGroupId()),
+  //                                 make_pair(stoi(p),stoi(b.GetHash())));
+  //     blockgraph_file.push_back(create_blockgraph);
+  //   }
+  // }
+
   output_file6.close();
+
+  ofstream output_file7;
+  char filename7[50];
+  sprintf(filename7, "Traces/waiting_list-%d.txt", node->GetId());
+  output_file7.open(filename7, ios::out);
+  output_file7 << "Waitinglist" << endl;
+  output_file7 << "Parent Hash" << " BlockHash" << endl;
+  for (auto &pair: block_waiting_list) { //{block hash, block}
+    vector<string> parents_of_block = pair.second.GetParents();
+    for (auto &p : parents_of_block) {
+      output_file7 << p << pair.first << endl;
+    } 
+  }
+  output_file7.close();
 
 
   // Mempool information
@@ -2309,3 +2371,7 @@ void B4Mesh::debug(string suffix){
   debug_suffix.str("");
  
 }
+<<<<<<< HEAD
+=======
+ 
+>>>>>>> main

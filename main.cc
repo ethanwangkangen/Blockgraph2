@@ -8,7 +8,7 @@
 
 using namespace std;
 
-int main(int argc, char *argv[]){
+int main(int argc, char *argv[]) {
 
 // Default values
   int nNodes = 10;  // Number of nodes
@@ -30,7 +30,7 @@ int main(int argc, char *argv[]){
   cmd.AddValue("speed", "The velocity of the nodes in m/s", speed);
   cmd.Parse (argc, argv);
 
-  Experiment e(nNodes, sTime, txGen, mMobility, mLoss,  nScen, speed);
+  Experiment e(nNodes, sTime, 1/txGen, mMobility, mLoss,  nScen, speed);
   e.Run();
 
   return 0;

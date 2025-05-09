@@ -25,7 +25,7 @@ ApplicationContainer B4MeshHelper::Install(NodeContainer c, float timeBetweenTxn
   for (NodeContainer::Iterator i = c.Begin(); i != c.End(); ++i){
     cout << "Install b4mesh on node : " << (*i)->GetId() << endl;
     Ptr<B4Mesh> b4meshApp = factory.Create<B4Mesh>();
-    b4meshApp->SetUp(*i, peers, timeBetweenTxn); // Pass in current node, list of all peer IP, and txGen value
+    b4meshApp->SetUp(*i, peers, timeBetweenTxn); // Pass in current node, list of all peer IP, and timeBetweenTxn value
     b4meshApp->traces = traces;
     (*i)->AddApplication(b4meshApp);
     apps.Add(b4meshApp);
