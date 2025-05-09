@@ -47,7 +47,7 @@ void B4MeshOracle::SetUp(Ptr<Node> node, vector<Ipv4Address> peers){
 	majority = 0;
 
 	heartbeat_freq = 1; // In seconds
-	election_timeout_parameters = make_pair(4000, 6000);
+	election_timeout_parameters = make_pair(8000, 10000); //was 4000, 6000.
 	election_timeout_event = EventId();
 
 	// Initialize trace variables
@@ -311,6 +311,7 @@ void B4MeshOracle::ResetElectionTimeout(float factor){
 // Become a candidate and vote for self. 
 // Request for votes.
 void B4MeshOracle::TriggerElectionTimeout(){
+	debug("Election timeout triggered. Becoming candidate and voting for self.");
 	if (!running) return;
 	SetCurrentLeader(-1);
 	ResetElectionTimeout();
@@ -766,8 +767,6 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 	append_entries_hdr_t entries = *((append_entries_hdr_t*) data_payload.data());
 	string log_entries = data_payload.substr(sizeof(append_entries_hdr_t));
 
-
-
 	if (GetCurrentLeader() == -1) {
 		SetCurrentLeader(entries.leader_id);
 	}
@@ -836,7 +835,10 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 		// debug(debug_suffix.str());
 	}
 		
+<<<<<<< HEAD
+=======
 
+>>>>>>> main
 		// debug_suffix << "GetEntry(entries.prev_log_index).first is " << GetEntry(entries.prev_log_index).first;
 		// debug(debug_suffix.str());
 
@@ -880,7 +882,6 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 				log.push_back(make_pair(current_term, hash));
 			}
 		}
-
 
 		if (entries.msg_type == APPEND_ENTRY){
 			Block b(log_entries);
@@ -978,14 +979,17 @@ B4MeshOracle::append_entries_ack_t B4MeshOracle::ProcessAppendEntries(string dat
 		}
 
 	}
+<<<<<<< HEAD
+	
+=======
 
 
+>>>>>>> main
 	ret.commit_index = commit_index;
 	ret.entry_index = LastLogIndex();
 	ret.success = true;
 
 	return ret;
-
 }
 
 // Called by leader in response to followers' acknowledgements to AppendEntries.
@@ -1030,9 +1034,9 @@ void B4MeshOracle::ProcessEntriesAck(append_entries_ack_t ack_entries){
 
 	for (int commit_candidate=commit_index+1; commit_candidate<=LastLogIndex(); ++commit_candidate){
 		int count = 0;
-		for (size_t i = 0; i < match_indexes.size(); ++i) {
-   			std::cout << "match_indexes[" << i << "] = " << match_indexes[i] << std::endl;
-		}
+		// for (size_t i = 0; i < match_indexes.size(); ++i) {
+   		// 	std::cout << "match_indexes[" << i << "] = " << match_indexes[i] << std::endl;
+		// }
 		for (auto n : current_group){
 			int commit = match_indexes[n.first];
 			if (commit >= commit_candidate)
@@ -1394,7 +1398,6 @@ void B4MeshOracle::debug(string suffix){
 	cout << Simulator::Now().GetSeconds() << "s: B4MeshOracle : Node " << node->GetId() <<
       " : " << suffix << endl;
   	debug_suffix.str("");
-
 }
 
 

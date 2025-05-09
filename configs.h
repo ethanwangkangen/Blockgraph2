@@ -34,7 +34,11 @@
 #define RETRANSMISSION_TIMER 60
 
 // b4mesh-mobility
+<<<<<<< HEAD
+#define TOPOLOGY_TOLERANCE_TIME 15 //was 3
+=======
 #define TOPOLOGY_TOLERANCE_TIME 5 //was 3
+>>>>>>> main
 
 // Block creation delay
 // Block treatment delay
